@@ -1,0 +1,6 @@
+{
+  "name": "Meta-TV Virtual Mall 3D",
+  "description": "Portale 3D immersivo, navigabile e interattivo per il centro commerciale virtuale globale Meta-TV con corridoi 3D, padiglioni tematici, mappa 3D aziende, chatbot e integrazione Bonus-Power.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
