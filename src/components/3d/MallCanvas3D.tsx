@@ -583,20 +583,23 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     scene.add(wallRight);
 
     // ---------------------------------------------------------
-    // Render Wall Sponsor Panels (Manifesti Pubblicitari 3D)
+    // Render Wall & Floating Overhead Sponsor Panels (Manifesti Pubblicitari 3D)
     // ---------------------------------------------------------
     if (sponsorPanelsRef.current && sponsorPanelsRef.current.length > 0) {
       sponsorPanelsRef.current.forEach((sp) => {
+        const isOverhead = sp.side === 'overhead' || sp.isOverhead;
+
         const panelGroup = new THREE.Group();
-        const zPos = sp.side === 'left' ? -9.8 : 9.8;
-        const rotY = sp.side === 'left' ? 0 : Math.PI;
-        panelGroup.position.set(sp.positionX, 4.5, zPos);
+        const zPos = isOverhead ? 0 : (sp.side === 'left' ? -9.8 : 9.8);
+        const yPos = isOverhead ? 6.2 : 4.5;
+        const rotY = isOverhead ? -Math.PI / 2 : (sp.side === 'left' ? 0 : Math.PI);
+        panelGroup.position.set(sp.positionX, yPos, zPos);
         panelGroup.rotation.y = rotY;
 
-        // Doubled dimension size for giant wall posters (8.4m width x 5.0m height)
-        const width = 8.4;
-        const height = 5.0;
-        const depth = 0.12;
+        // Dimensions: overhead billboards are 6.4m x 3.4m suspended, wall posters are 8.4m x 5.0m
+        const width = isOverhead ? 6.4 : 8.4;
+        const height = isOverhead ? 3.4 : 5.0;
+        const depth = 0.15;
 
         const isActive = sp.status === 'active';
         const frameColorHex = isActive ? 0xffd700 : 0x00ffff;
@@ -615,6 +618,21 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           frameMat
         );
         panelGroup.add(frameMesh);
+
+        // Ceiling Cables for Overhead Hanging Billboards
+        if (isOverhead) {
+          const cableMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
+          const cableHeight = 2.8;
+          const cableGeo = new THREE.CylinderGeometry(0.03, 0.03, cableHeight, 8);
+
+          const cable1 = new THREE.Mesh(cableGeo, cableMat);
+          cable1.position.set(-width / 2 + 0.6, height / 2 + cableHeight / 2, 0);
+          panelGroup.add(cable1);
+
+          const cable2 = new THREE.Mesh(cableGeo, cableMat);
+          cable2.position.set(width / 2 - 0.6, height / 2 + cableHeight / 2, 0);
+          panelGroup.add(cable2);
+        }
 
         // Poster Texture Canvas (High Resolution 2048x1024)
         const posterCanvas = document.createElement('canvas');
@@ -650,6 +668,14 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
             pCtx.fillStyle = '#e2e8f0';
             pCtx.font = '50px sans-serif';
             pCtx.fillText(sp.tagline, 60, 500);
+
+            if (sp.youtubeEmbedUrl || sp.videoUrl || sp.mediaType === 'youtube') {
+              pCtx.fillStyle = '#ff0000';
+              pCtx.fillRect(60, 540, 680, 100);
+              pCtx.fillStyle = '#ffffff';
+              pCtx.font = 'bold 46px sans-serif';
+              pCtx.fillText('▶ VIDEO YOUTUBE DISPONIBILE', 90, 608);
+            }
 
             // Purchase / Website Link Button on Canvas
             pCtx.fillStyle = '#10b981';
@@ -704,12 +730,22 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         const posterTex = new THREE.CanvasTexture(posterCanvas);
         const posterGeo = new THREE.PlaneGeometry(width, height);
         const posterMat = new THREE.MeshBasicMaterial({ map: posterTex });
+
         const posterMesh = new THREE.Mesh(posterGeo, posterMat);
-        posterMesh.position.set(0, 0, sp.side === 'left' ? 0.08 : -0.08);
-        if (sp.side === 'right') posterMesh.rotation.y = Math.PI;
+        posterMesh.position.set(0, 0, isOverhead ? 0.08 : (sp.side === 'left' ? 0.08 : -0.08));
+        if (!isOverhead && sp.side === 'right') posterMesh.rotation.y = Math.PI;
 
         posterMesh.userData = { type: 'sponsor_panel', panel: sp };
         panelGroup.add(posterMesh);
+
+        let backPosterMesh: THREE.Mesh | null = null;
+        if (isOverhead) {
+          backPosterMesh = new THREE.Mesh(posterGeo, posterMat);
+          backPosterMesh.position.set(0, 0, -0.08);
+          backPosterMesh.rotation.y = Math.PI;
+          backPosterMesh.userData = { type: 'sponsor_panel', panel: sp };
+          panelGroup.add(backPosterMesh);
+        }
 
         // Load custom image if available
         if (sp.imageUrl) {
@@ -749,6 +785,14 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
                 mCtx.font = 'bold 56px sans-serif';
                 mCtx.fillText(sp.tagline, 60, 360);
 
+                if (sp.youtubeEmbedUrl || sp.videoUrl || sp.mediaType === 'youtube') {
+                  mCtx.fillStyle = '#ff0000';
+                  mCtx.fillRect(60, 420, 680, 100);
+                  mCtx.fillStyle = '#ffffff';
+                  mCtx.font = 'bold 46px sans-serif';
+                  mCtx.fillText('▶ VIDEO YOUTUBE DISPONIBILE', 90, 488);
+                }
+
                 mCtx.fillStyle = isActive ? '#10b981' : '#facc15';
                 mCtx.fillRect(60, 800, 880, 120);
                 mCtx.fillStyle = '#000000';
@@ -761,7 +805,11 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
                 mCtx.font = 'bold 46px sans-serif';
                 mCtx.fillText('🛒 ACQUISTA ONLINE ESTERNO', 1010, 875);
 
-                posterMesh.material = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(mixCanvas) });
+                const finalMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(mixCanvas) });
+                posterMesh.material = finalMat;
+                if (backPosterMesh) {
+                  backPosterMesh.material = finalMat;
+                }
               }
             },
             undefined,
@@ -769,11 +817,17 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           );
         }
 
-        // Top Neon Lamp
+        // Top & Bottom Neon Lamps
         const lightBarMat = new THREE.MeshBasicMaterial({ color: frameColorHex });
         const lightBar = new THREE.Mesh(new THREE.BoxGeometry(width + 0.6, 0.25, 0.4), lightBarMat);
-        lightBar.position.set(0, height / 2 + 0.35, 0.25);
+        lightBar.position.set(0, height / 2 + 0.35, isOverhead ? 0 : 0.25);
         panelGroup.add(lightBar);
+
+        if (isOverhead) {
+          const bottomBar = new THREE.Mesh(new THREE.BoxGeometry(width + 0.6, 0.25, 0.4), lightBarMat);
+          bottomBar.position.set(0, -height / 2 - 0.35, 0);
+          panelGroup.add(bottomBar);
+        }
 
         scene.add(panelGroup);
       });
@@ -1615,6 +1669,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
             (current.userData.pavilionId ||
               current.userData.subCategory ||
               current.userData.type === 'corridor_portal' ||
+              current.userData.type === 'sponsor_panel' ||
               current.userData.type === 'avatar' ||
               current.userData.type === 'floor_arrow_left' ||
               current.userData.type === 'floor_arrow_right')

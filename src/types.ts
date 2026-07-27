@@ -3,12 +3,16 @@ export interface SponsorPanel {
   title: string;
   advertiserName: string;
   imageUrl: string;
+  youtubeEmbedUrl?: string;
+  videoUrl?: string;
+  mediaType?: 'image' | 'youtube' | 'video';
   tagline: string;
   description?: string;
   websiteUrl?: string;
   externalPurchaseUrl?: string;
   positionX: number;
-  side: 'left' | 'right';
+  side: 'left' | 'right' | 'overhead';
+  isOverhead?: boolean;
   status: 'active' | 'available' | 'pending';
   pricePerMonth: string;
   category?: string;

@@ -16,7 +16,24 @@ import {
   CreditCard,
   Edit,
   ArrowRight,
+  Video,
+  Play,
+  Tv,
 } from 'lucide-react';
+
+function parseYouTubeEmbedUrl(url?: string): string | null {
+  if (!url) return null;
+  if (url.includes('/embed/')) return url;
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch && watchMatch[1]) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}?autoplay=1&rel=0`;
+  }
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch && shortMatch[1]) {
+    return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&rel=0`;
+  }
+  return null;
+}
 
 interface SponsorPanelModalProps {
   panel: SponsorPanel;
@@ -34,6 +51,9 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
   const [activeTab, setActiveTab] = useState<'view' | 'buy' | 'edit'>(
     panel.status === 'available' ? 'buy' : 'view'
   );
+
+  const initialEmbedUrl = panel.youtubeEmbedUrl || parseYouTubeEmbedUrl(panel.videoUrl) || '';
+  const [showVideo, setShowVideo] = useState<boolean>(!!initialEmbedUrl);
 
   // Listen for Down Arrow (or S key) to step back and close full screen manifesto
   useEffect(() => {
@@ -63,14 +83,19 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
     description: '',
     websiteUrl: '',
     externalPurchaseUrl: panel.externalPurchaseUrl || 'https://meta-tv.net/acquista-sponsor-3d',
-    imageUrl: 'https://images.unsplash.com/photo-1542744094-3a317272018a?auto=format&fit=crop&w=800&q=80',
+    imageUrl: panel.imageUrl || 'https://images.unsplash.com/photo-1542744094-3a317272018a?auto=format&fit=crop&w=800&q=80',
+    youtubeEmbedUrl: initialEmbedUrl,
+    mediaType: panel.mediaType || (initialEmbedUrl ? 'youtube' : 'image'),
     plan: '1_month',
   });
 
   const [purchasedSuccess, setPurchasedSuccess] = useState(false);
 
   // Form state for admin edit
-  const [editForm, setEditForm] = useState<SponsorPanel>({ ...panel });
+  const [editForm, setEditForm] = useState<SponsorPanel>({
+    ...panel,
+    youtubeEmbedUrl: initialEmbedUrl,
+  });
 
   const handlePurchaseSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +107,8 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
       '12_months': '€199 / mese',
     };
 
+    const parsedVideo = parseYouTubeEmbedUrl(purchaseForm.youtubeEmbedUrl) || purchaseForm.youtubeEmbedUrl;
+
     const updated: SponsorPanel = {
       ...panel,
       status: 'active',
@@ -92,6 +119,8 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
       websiteUrl: purchaseForm.websiteUrl || 'https://meta-tv.net',
       externalPurchaseUrl: purchaseForm.externalPurchaseUrl || 'https://meta-tv.net/acquista-sponsor-3d',
       imageUrl: purchaseForm.imageUrl,
+      youtubeEmbedUrl: parsedVideo,
+      mediaType: parsedVideo ? 'youtube' : 'image',
       boughtByEmail: purchaseForm.email,
       pricePerMonth: priceMap[purchaseForm.plan] || '€299 / mese',
       createdAt: new Date().toISOString(),
@@ -106,7 +135,12 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
 
   const handleAdminEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdatePanel(editForm);
+    const parsedVideo = parseYouTubeEmbedUrl(editForm.youtubeEmbedUrl) || editForm.youtubeEmbedUrl;
+    onUpdatePanel({
+      ...editForm,
+      youtubeEmbedUrl: parsedVideo,
+      mediaType: parsedVideo ? 'youtube' : 'image',
+    });
     onClose();
   };
 
@@ -225,16 +259,57 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
         ) : activeTab === 'view' ? (
           <div className="w-full max-w-6xl mx-auto flex flex-col items-center justify-center space-y-4">
             
-            {/* ENLARGED FULLSCREEN MANIFESTO IMAGE DISPLAY */}
-            <div className="relative w-full flex items-center justify-center rounded-3xl overflow-hidden border-2 border-yellow-500/60 shadow-[0_0_100px_rgba(255,215,0,0.3)] bg-slate-950 p-2 group">
-              <img
-                src={panel.imageUrl}
-                alt={panel.title}
-                className="max-h-[62vh] sm:max-h-[70vh] w-auto max-w-full object-contain rounded-2xl transition-transform duration-500 group-hover:scale-[1.01]"
-              />
+            {/* FULLSCREEN MANIFESTO MEDIA DISPLAY (YOUTUBE IFRAME OR IMAGE) */}
+            <div className="relative w-full flex flex-col items-center justify-center rounded-3xl overflow-hidden border-2 border-yellow-500/60 shadow-[0_0_100px_rgba(255,215,0,0.3)] bg-slate-950 p-2 group">
+              
+              {/* Media Mode Toggle (If YouTube video exists) */}
+              {initialEmbedUrl && (
+                <div className="absolute top-4 right-4 z-20 bg-black/80 backdrop-blur-md p-1 rounded-xl border border-amber-500/40 flex items-center gap-1">
+                  <button
+                    onClick={() => setShowVideo(true)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      showVideo
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <Video className="w-3.5 h-3.5" />
+                    Video YouTube
+                  </button>
+                  <button
+                    onClick={() => setShowVideo(false)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      !showVideo
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    Immagine
+                  </button>
+                </div>
+              )}
+
+              {showVideo && initialEmbedUrl ? (
+                <div className="w-full aspect-video max-h-[62vh] sm:max-h-[68vh] rounded-2xl overflow-hidden bg-black shadow-2xl">
+                  <iframe
+                    src={initialEmbedUrl}
+                    title={panel.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <img
+                  src={panel.imageUrl}
+                  alt={panel.title}
+                  className="max-h-[62vh] sm:max-h-[70vh] w-auto max-w-full object-contain rounded-2xl transition-transform duration-500 group-hover:scale-[1.01]"
+                />
+              )}
 
               {/* Glass Overlay Title Tag */}
-              <div className="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="w-full mt-2 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="px-2.5 py-0.5 rounded-md bg-yellow-500/40 border border-yellow-300 text-yellow-200 font-extrabold text-xs uppercase">
@@ -243,6 +318,11 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     <span className="text-xs text-slate-300 font-mono">
                       Azienda: {panel.advertiserName || 'Partner Ufficiale'}
                     </span>
+                    {initialEmbedUrl && (
+                      <span className="bg-red-600/90 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Tv className="w-3 h-3" /> YOUTUBE VIDEO
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide">{panel.title}</h3>
                   <p className="text-cyan-300 text-xs sm:text-sm font-semibold">{panel.tagline}</p>
@@ -267,7 +347,7 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-400 hover:from-yellow-400 hover:to-amber-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg transition-all"
                   >
                     <ShoppingBag className="w-4 h-4" />
-                    Prenota / Acquista Space
+                    {panel.status === 'available' ? '🛒 Acquista / Affitta Spazio 3D' : 'Prenota Spazio / Modifica'}
                   </button>
                 </div>
               </div>
@@ -385,6 +465,29 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     placeholder="Es. Sconto 20% esclusivo per i visitatori Meta-TV 3D"
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-yellow-400 focus:outline-none"
                   />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-red-300 mb-1 flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5 text-red-400" />
+                    URL Video YouTube (IFrame / Video Promo) - Opzionale
+                  </label>
+                  <input
+                    type="url"
+                    value={purchaseForm.youtubeEmbedUrl}
+                    onChange={(e) =>
+                      setPurchaseForm({
+                        ...purchaseForm,
+                        youtubeEmbedUrl: e.target.value,
+                        mediaType: e.target.value ? 'youtube' : 'image',
+                      })
+                    }
+                    placeholder="https://www.youtube.com/watch?v=... oppure https://youtu.be/..."
+                    className="w-full bg-black/50 border border-red-500/40 rounded-xl px-3 py-2 text-sm text-white focus:border-red-400 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Incolla qualsiasi link YouTube: verrà riprodotto direttamente nel manifesto della Galleria 3D!
+                  </p>
                 </div>
 
                 <div className="md:col-span-2">
@@ -547,6 +650,26 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     value={editForm.tagline}
                     onChange={(e) => setEditForm({ ...editForm, tagline: e.target.value })}
                     className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-xs text-red-300 mb-1 font-semibold flex items-center gap-1">
+                    <Video className="w-3.5 h-3.5 text-red-400" />
+                    YouTube Embed Video URL
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.youtubeEmbedUrl || ''}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        youtubeEmbedUrl: e.target.value,
+                        mediaType: e.target.value ? 'youtube' : 'image',
+                      })
+                    }
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full bg-black/50 border border-red-500/40 rounded-xl px-3 py-2 text-sm text-white"
                   />
                 </div>
 
