@@ -151,6 +151,7 @@ export interface Panorama360 {
   category: string;
   imageUrl: string;
   description: string;
+  iframeUrl?: string;
 }
 
 export interface ChatMessage {

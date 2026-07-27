@@ -22,6 +22,7 @@ import {
   X,
   Sparkles,
   ExternalLink,
+  Eye,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -51,6 +52,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+
+  // Panorama state
+  const [editingPanorama, setEditingPanorama] = useState<Panorama360 | null>(null);
+  const [showAddPanoModal, setShowAddPanoModal] = useState(false);
+  const [previewPanorama, setPreviewPanorama] = useState<Panorama360 | null>(null);
+  const [newPano, setNewPano] = useState<Partial<Panorama360>>({
+    title: '',
+    category: 'Centro Commerciale 3D',
+    imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80',
+    description: '',
+    iframeUrl: '',
+  });
+
+  const handleCreatePanorama = () => {
+    if (!newPano.title) return;
+    const itemToAdd: Panorama360 = {
+      id: `pano-${Date.now()}`,
+      title: newPano.title,
+      category: newPano.category || 'Centro Commerciale 3D',
+      imageUrl: newPano.imageUrl || 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80',
+      description: newPano.description || '',
+      iframeUrl: newPano.iframeUrl || undefined,
+    };
+    onUpdatePanoramas([...panoramas, itemToAdd]);
+    setShowAddPanoModal(false);
+    setNewPano({
+      title: '',
+      category: 'Centro Commerciale 3D',
+      imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1600&q=80',
+      description: '',
+      iframeUrl: '',
+    });
+  };
+
+  const handleSavePanorama = () => {
+    if (editingPanorama) {
+      const updated = panoramas.map((p) => (p.id === editingPanorama.id ? editingPanorama : p));
+      onUpdatePanoramas(updated);
+      setEditingPanorama(null);
+    }
+  };
+
+  const handleDeletePanorama = (id: string) => {
+    onUpdatePanoramas(panoramas.filter((p) => p.id !== id));
+  };
 
   // Sponsor state
   const [editingSponsor, setEditingSponsor] = useState<SponsorPanel | null>(null);
@@ -438,6 +484,112 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <p className="text-[11px] text-white/50 line-clamp-2">{p.description}</p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Tab: Panorami 360° & Embed Iframe */}
+      {activeTab === 'panoramas' && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap justify-between items-center gap-4 bg-[#080808] p-4 rounded-2xl border border-white/10">
+            <div>
+              <h3 className="text-yellow-500 font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-yellow-400" />
+                Gestione Panorami 360° & Embed Virtual Tour / Iframe ({panoramas.length})
+              </h3>
+              <p className="text-xs text-white/50 mt-1">
+                Aggiungi o modifica viste panoramiche 360° equirettangolari oppure integra tour virtuali esterni via Iframe (Matterport, Kuula, StreetView, Panoee).
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddPanoModal(true)}
+              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.3)] flex items-center gap-2 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Aggiungi Nuovo Panorama / Iframe</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {panoramas.map((p) => (
+              <div
+                key={p.id}
+                className="bg-[#080a10] border border-white/10 hover:border-yellow-500/50 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col justify-between group shadow-lg"
+              >
+                <div>
+                  {/* Thumbnail / Iframe indicator */}
+                  <div className="relative h-44 bg-black overflow-hidden">
+                    {p.iframeUrl ? (
+                      <div className="w-full h-full relative">
+                        <iframe
+                          src={p.iframeUrl}
+                          className="w-full h-full pointer-events-none opacity-80"
+                          title={p.title}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-cyan-500 text-black shadow-md border border-cyan-300">
+                          Embed Iframe
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full relative">
+                        <img
+                          src={p.imageUrl}
+                          alt={p.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-yellow-500/90 text-black shadow-md">
+                          Foto 360°
+                        </span>
+                      </div>
+                    )}
+
+                    <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-black/70 backdrop-blur-md text-amber-300 border border-amber-500/40">
+                      {p.category}
+                    </span>
+                  </div>
+
+                  {/* Content details */}
+                  <div className="p-4 space-y-2">
+                    <h4 className="text-white font-bold text-sm line-clamp-1">{p.title}</h4>
+                    <p className="text-slate-300 text-xs line-clamp-2">{p.description || 'Nessuna descrizione specificata.'}</p>
+
+                    {p.iframeUrl && (
+                      <div className="text-[11px] font-mono text-cyan-300 bg-black/60 p-2 rounded-xl border border-cyan-500/30 truncate flex items-center gap-1.5">
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{p.iframeUrl}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer Controls */}
+                <div className="p-4 pt-2 border-t border-white/10 flex items-center justify-between bg-black/40">
+                  <button
+                    onClick={() => setPreviewPanorama(p)}
+                    className="px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border border-yellow-500/30 transition-all"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Anteprima
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setEditingPanorama(p)}
+                      className="p-1.5 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1 border border-white/10"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" /> Modifica
+                    </button>
+                    <button
+                      onClick={() => handleDeletePanorama(p.id)}
+                      className="p-1.5 bg-red-950/80 hover:bg-red-900 text-red-300 rounded-lg text-xs font-semibold border border-red-500/30"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -989,6 +1141,229 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <Copy className="w-3.5 h-3.5" />
               <span>{copiedCode ? 'Copiato!' : 'Copia Codice'}</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add New Panorama / Iframe */}
+      {showAddPanoModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#080808] border border-yellow-500/40 p-6 rounded-3xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-[0_0_50px_rgba(245,158,11,0.2)] space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-white font-light text-lg tracking-wide uppercase flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-yellow-400" />
+                Aggiungi <span className="font-bold text-yellow-500">Panorama 360° / Embed Iframe</span>
+              </h3>
+              <button onClick={() => setShowAddPanoModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Titolo Panorama / Ambience</label>
+                <input
+                  type="text"
+                  value={newPano.title}
+                  onChange={(e) => setNewPano({ ...newPano, title: e.target.value })}
+                  placeholder="Es. Plaza Galleria Est 360°"
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Categoria</label>
+                <input
+                  type="text"
+                  value={newPano.category}
+                  onChange={(e) => setNewPano({ ...newPano, category: e.target.value })}
+                  placeholder="Es. Centro Commerciale, Area VIP, Food Court"
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">URL Immagine Panorama 360° (Equirettangolare)</label>
+                <input
+                  type="url"
+                  value={newPano.imageUrl}
+                  onChange={(e) => setNewPano({ ...newPano, imageUrl: e.target.value })}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-cyan-400 block mb-1 uppercase tracking-wider text-[10px] font-bold flex items-center gap-1">
+                  <ExternalLink className="w-3.5 h-3.5" /> URL Embed Iframe Opzionale (Matterport, Kuula, StreetView, Panoee)
+                </label>
+                <input
+                  type="url"
+                  value={newPano.iframeUrl || ''}
+                  onChange={(e) => setNewPano({ ...newPano, iframeUrl: e.target.value })}
+                  placeholder="https://my.matterport.com/show/?m=... oppure https://kuula.co/share/..."
+                  className="w-full bg-zinc-950 border border-cyan-500/40 p-2.5 rounded-xl text-cyan-200 focus:border-cyan-400 focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Se inserito, il tour virtuale verrà integrato direttamente via Iframe interattivo a schermo intero.</p>
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Descrizione</label>
+                <textarea
+                  value={newPano.description}
+                  onChange={(e) => setNewPano({ ...newPano, description: e.target.value })}
+                  placeholder="Descrizione dettagliata dell'ambiente 360°..."
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 h-20 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setShowAddPanoModal(false)}
+                className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleCreatePanorama}
+                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md"
+              >
+                <CheckCircle className="w-4 h-4" /> Salva Panorama 360°
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Panorama */}
+      {editingPanorama && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#080808] border border-yellow-500/40 p-6 rounded-3xl max-w-xl w-full max-h-[85vh] overflow-y-auto shadow-[0_0_50px_rgba(245,158,11,0.2)] space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-white font-light text-lg tracking-wide uppercase flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-yellow-400" />
+                Modifica <span className="font-bold text-yellow-500">Panorama 360°</span>
+              </h3>
+              <button onClick={() => setEditingPanorama(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Titolo</label>
+                <input
+                  type="text"
+                  value={editingPanorama.title}
+                  onChange={(e) => setEditingPanorama({ ...editingPanorama, title: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Categoria</label>
+                <input
+                  type="text"
+                  value={editingPanorama.category}
+                  onChange={(e) => setEditingPanorama({ ...editingPanorama, category: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">URL Immagine 360°</label>
+                <input
+                  type="url"
+                  value={editingPanorama.imageUrl}
+                  onChange={(e) => setEditingPanorama({ ...editingPanorama, imageUrl: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
+                />
+              </div>
+
+              <div>
+                <label className="text-cyan-400 block mb-1 uppercase tracking-wider text-[10px] font-bold flex items-center gap-1">
+                  <ExternalLink className="w-3.5 h-3.5" /> URL Embed Iframe Opzionale
+                </label>
+                <input
+                  type="url"
+                  value={editingPanorama.iframeUrl || ''}
+                  onChange={(e) => setEditingPanorama({ ...editingPanorama, iframeUrl: e.target.value })}
+                  className="w-full bg-zinc-950 border border-cyan-500/40 p-2.5 rounded-xl text-cyan-200"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Descrizione</label>
+                <textarea
+                  value={editingPanorama.description}
+                  onChange={(e) => setEditingPanorama({ ...editingPanorama, description: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 h-20"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setEditingPanorama(null)}
+                className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleSavePanorama}
+                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md"
+              >
+                <Save className="w-4 h-4" /> Salva Modifiche
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Live Panorama / Iframe Preview */}
+      {previewPanorama && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-2xl flex flex-col p-4 sm:p-6">
+          <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-2xl border border-yellow-500/40 mb-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <span className="p-2 rounded-xl bg-yellow-500/20 text-yellow-400 font-bold text-sm">
+                360°
+              </span>
+              <div>
+                <h3 className="text-white font-extrabold text-sm uppercase tracking-wider">{previewPanorama.title}</h3>
+                <p className="text-xs text-slate-400">{previewPanorama.description}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setPreviewPanorama(null)}
+              className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-1.5"
+            >
+              <X className="w-4 h-4" /> Chiudi Anteprima
+            </button>
+          </div>
+
+          <div className="flex-1 w-full h-full rounded-2xl overflow-hidden border border-white/15 bg-black relative">
+            {previewPanorama.iframeUrl ? (
+              <iframe
+                src={previewPanorama.iframeUrl}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; vr"
+                allowFullScreen
+                title={previewPanorama.title}
+              />
+            ) : (
+              <div className="w-full h-full relative flex items-center justify-center">
+                <img
+                  src={previewPanorama.imageUrl}
+                  alt={previewPanorama.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 pointer-events-none" />
+                <div className="absolute bottom-6 left-6 right-6 bg-black/80 backdrop-blur-md p-4 rounded-2xl border border-yellow-500/30 text-amber-300 text-xs font-semibold max-w-xl">
+                  📍 Vista Equirettangolare 360°: {previewPanorama.title}. Nel visualizzatore 3D principale è possibile ruotare la fotocamera a 360°.
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

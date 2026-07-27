@@ -156,8 +156,18 @@ export const Panorama3DViewer: React.FC<Panorama3DViewerProps> = ({ panoramas })
 
   return (
     <div className="fixed inset-0 w-screen h-screen bg-slate-950 overflow-hidden">
-      {/* 3D Panorama WebGL Container */}
-      <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      {/* 3D Panorama WebGL Container or Embed Iframe */}
+      {activePano.iframeUrl && !customImage ? (
+        <iframe
+          src={activePano.iframeUrl}
+          className="w-full h-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; vr"
+          allowFullScreen
+          title={activePano.title}
+        />
+      ) : (
+        <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      )}
 
       {/* Panorama Selector Bar */}
       <div className="absolute top-6 left-6 right-6 z-20 flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-amber-500/30 shadow-2xl">
