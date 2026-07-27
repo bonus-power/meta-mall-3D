@@ -32,7 +32,6 @@ import {
   DoorOpen,
   ArrowUpRight,
   Download,
-  Building2,
 } from 'lucide-react';
 import { CompanyVirtualTourViewer } from '../3d/CompanyVirtualTourViewer';
 
@@ -49,24 +48,6 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 }) => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companies[0]?.id || '');
   const activeCompany = companies.find((c) => c.id === selectedCompanyId) || companies[0];
-
-  // Filter company branches strictly belonging to the logged-in company / same Partita IVA or brand
-  const userCompanyBranches = companies.filter((c) => {
-    // If P.IVA is present on both, match by P.IVA
-    if (activeCompany?.piva && c.piva) {
-      return c.piva.trim().toLowerCase() === activeCompany.piva.trim().toLowerCase();
-    }
-    // If brand or company name starts with same brand term (e.g., 'Meta-TV')
-    if (activeCompany?.name && c.name) {
-      const brandPart = activeCompany.name.split(' ')[0].toLowerCase();
-      const cBrandPart = c.name.split(' ')[0].toLowerCase();
-      if (brandPart.length > 3 && brandPart === cBrandPart) {
-        return true;
-      }
-    }
-    // Default fallback: match exact company ID
-    return c.id === activeCompany?.id;
-  });
 
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [formData, setFormData] = useState<Company>(activeCompany);
@@ -391,36 +372,20 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </div>
         </div>
 
-        {/* Company / Filiali Switcher Selector (Riservato solo alle filiali della stessa Azienda/P.IVA) */}
-        <div className="flex items-center gap-2.5 bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800 shadow-inner">
-          <Building2 className="w-5 h-5 text-amber-400 shrink-0" />
-          <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-extrabold flex items-center gap-1.5">
-              STAND AZIENDA RISERVATA
-              {userCompanyBranches.length > 1 && (
-                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-md text-[9px] border border-amber-500/30 font-bold">
-                  {userCompanyBranches.length} Filiali P.IVA
-                </span>
-              )}
-            </span>
-            {userCompanyBranches.length > 1 ? (
-              <select
-                value={formData.id}
-                onChange={(e) => handleSelectCompanyChange(e.target.value)}
-                className="bg-black border border-amber-500/60 px-2.5 py-1 rounded-xl text-xs text-amber-300 font-extrabold uppercase tracking-wider focus:outline-none cursor-pointer mt-0.5 shadow-sm"
-              >
-                {userCompanyBranches.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.city})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="text-xs text-amber-300 font-extrabold uppercase tracking-wider mt-0.5">
-                {formData.name} ({formData.city})
-              </span>
-            )}
-          </div>
+        {/* Company Switcher Selector */}
+        <div className="flex items-center gap-2 bg-slate-900/80 p-2 rounded-2xl border border-slate-800">
+          <label className="text-xs text-slate-400 uppercase tracking-wider font-bold">Stand:</label>
+          <select
+            value={formData.id}
+            onChange={(e) => handleSelectCompanyChange(e.target.value)}
+            className="bg-black border border-amber-500/50 p-2 rounded-xl text-xs text-amber-300 font-extrabold uppercase tracking-wider focus:outline-none cursor-pointer"
+          >
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.city})
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -631,17 +596,6 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full bg-black border border-slate-800 p-3 rounded-xl text-amber-300 font-bold focus:border-amber-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-slate-400 font-bold block mb-1 uppercase tracking-wider text-[10px]">Partita IVA / Codice Fiscale Aziendale</label>
-              <input
-                type="text"
-                placeholder="IT 01234567890"
-                value={formData.piva || ''}
-                onChange={(e) => setFormData({ ...formData, piva: e.target.value })}
-                className="w-full bg-black border border-slate-800 p-3 rounded-xl text-amber-300 font-mono font-bold focus:border-amber-500 focus:outline-none"
               />
             </div>
 

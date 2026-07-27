@@ -316,7 +316,7 @@ export const MallMiniMap2D: React.FC<MallMiniMap2DProps> = ({
       {/* ========================================================================= */}
       {isFullscreenMap &&
         createPortal(
-          <div className="fixed inset-0 z-[999999] bg-slate-950 flex flex-col p-3 sm:p-6 text-white overflow-hidden animate-fadeIn select-text">
+          <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col p-3 sm:p-6 text-white overflow-hidden animate-fadeIn select-text">
             {/* Top Fullscreen Control Bar */}
             <div className="bg-zinc-950/95 border-2 border-amber-500/60 rounded-2xl p-3 sm:p-4 mb-4 flex flex-col lg:flex-row items-center justify-between gap-3 shadow-[0_0_50px_rgba(245,158,11,0.25)] shrink-0">
               <div className="flex items-center gap-3 w-full lg:w-auto">
