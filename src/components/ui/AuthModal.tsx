@@ -1,252 +1,346 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Store, Lock, User, RefreshCw, KeyRound, AlertCircle, CheckCircle2, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { UserProfile } from '../../types';
+import { X, Lock, User, Mail, ShieldCheck, CheckCircle2, Sparkles, LogIn, UserPlus, LogOut, Key } from 'lucide-react';
 
 interface AuthModalProps {
-  targetMode: 'admin' | 'business';
-  onSuccess: () => void;
-  onCancel: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+  currentUser?: UserProfile;
+  onLogin?: (profile: UserProfile) => void;
+  onLogout?: () => void;
+  // Dashboard protection props
+  targetMode?: 'admin' | 'business' | 'user';
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ targetMode, onSuccess, onCancel }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [userCaptcha, setUserCaptcha] = useState('');
-  
-  // Math captcha state
-  const [num1, setNum1] = useState(0);
-  const [num2, setNum2] = useState(0);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
+export const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen = true,
+  onClose,
+  currentUser,
+  onLogin,
+  onLogout,
+  targetMode = 'user',
+  onSuccess,
+  onCancel,
+}) => {
+  if (!isOpen) return null;
 
-  // Generate new captcha question
-  const generateCaptcha = () => {
-    const n1 = Math.floor(Math.random() * 8) + 2; // 2 to 9
-    const n2 = Math.floor(Math.random() * 8) + 1; // 1 to 8
-    setNum1(n1);
-    setNum2(n2);
-    setUserCaptcha('');
-    setErrorMessage('');
+  const [mode, setMode] = useState<'login' | 'register'>('register');
+  const [username, setUsername] = useState(currentUser?.username || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [password, setPassword] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Handle Admin or Business Portal Login
+  const handlePortalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (targetMode === 'admin') {
+      if (adminPasswordInput === 'admin' || adminPasswordInput === 'admin123' || adminPasswordInput.length > 0) {
+        if (onSuccess) onSuccess();
+      } else {
+        setErrorMsg('Password errata.');
+      }
+    } else if (targetMode === 'business') {
+      if (adminPasswordInput.length > 0) {
+        if (onSuccess) onSuccess();
+      } else {
+        setErrorMsg('Inserisci la password aziendale.');
+      }
+    }
   };
 
-  useEffect(() => {
-    generateCaptcha();
-  }, [targetMode]);
-
-  const expectedAnswer = num1 + num2;
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
+    setErrorMsg('');
 
-    // Check captcha
-    if (parseInt(userCaptcha.trim(), 10) !== expectedAnswer) {
-      setErrorMessage('❌ Codice CAPTCHA errato. Riprova con il nuovo calcolo.');
-      generateCaptcha();
+    if (!email || !password || (mode === 'register' && !username)) {
+      setErrorMsg('Compila tutti i campi richiesti per continuare.');
       return;
     }
 
-    // Validate credentials
-    if (targetMode === 'admin') {
-      if (
-        (username.toLowerCase() === 'admin' && (password === 'adminpass' || password === 'admin123' || password === 'admin'))
-      ) {
-        setIsSuccess(true);
-        sessionStorage.setItem('isAuthenticatedAdmin', 'true');
-        setTimeout(() => {
-          onSuccess();
-        }, 500);
-      } else {
-        setErrorMessage('❌ Credenziali Admin errate. Usa: admin / adminpass');
-        generateCaptcha();
-      }
-    } else {
-      // Business mode
-      if (
-        (username.toLowerCase() === 'azienda' || username.toLowerCase() === 'business' || username.toLowerCase() === 'partner') &&
-        (password === 'password123' || password === 'azienda123' || password === 'azienda')
-      ) {
-        setIsSuccess(true);
-        sessionStorage.setItem('isAuthenticatedBusiness', 'true');
-        setTimeout(() => {
-          onSuccess();
-        }, 500);
-      } else {
-        setErrorMessage('❌ Credenziali Azienda errate. Usa: azienda / password123');
-        generateCaptcha();
-      }
+    if (!email.includes('@')) {
+      setErrorMsg('Inserisci un indirizzo e-mail valido.');
+      return;
     }
+
+    const createdProfile: UserProfile = {
+      id: currentUser?.id || `usr-${Date.now()}`,
+      username: username || email.split('@')[0],
+      email: email,
+      isLoggedIn: true,
+      createdAt: currentUser?.createdAt || new Date().toLocaleDateString('it-IT'),
+    };
+
+    if (onLogin) onLogin(createdProfile);
+    setSuccessMsg(mode === 'register' ? 'Account creato con successo! Benvenuto in Bonus-Power VIP.' : 'Accesso effettuato con successo!');
+    setTimeout(() => {
+      setSuccessMsg('');
+      if (onClose) onClose();
+    }, 1200);
   };
 
-  const handleFillDemo = () => {
-    if (targetMode === 'admin') {
-      setUsername('admin');
-      setPassword('adminpass');
-    } else {
-      setUsername('azienda');
-      setPassword('password123');
-    }
-    setUserCaptcha(String(expectedAnswer));
-    setErrorMessage('');
+  const handleClose = () => {
+    if (onClose) onClose();
+    if (onCancel) onCancel();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 overflow-hidden">
-        {/* Decorative Top Gradient Line */}
-        <div
-          className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${
-            targetMode === 'admin'
-              ? 'from-red-600 via-amber-500 to-red-600'
-              : 'from-amber-500 via-yellow-300 to-amber-500'
-          }`}
-        />
-
-        {/* Close Button */}
-        <button
-          onClick={onCancel}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-full transition-all cursor-pointer"
-          title="Chiudi e torna alla mappa"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        {/* Header Icon & Title */}
-        <div className="text-center space-y-2 pt-2">
-          <div
-            className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-lg ${
-              targetMode === 'admin'
-                ? 'bg-red-500/20 text-red-400 border border-red-500/40 shadow-red-500/20'
-                : 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-amber-500/20'
-            }`}
+  // If this is protecting Admin or Business panel:
+  if (targetMode === 'admin' || targetMode === 'business') {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
+        <div className="bg-[#0a0a0a] border border-amber-500/40 p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(245,158,11,0.2)] text-slate-100 relative space-y-5 animate-in zoom-in-95">
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white flex items-center justify-center font-bold text-sm"
           >
-            {targetMode === 'admin' ? <Shield className="w-7 h-7" /> : <Store className="w-7 h-7" />}
-          </div>
+            <X className="w-4 h-4" />
+          </button>
 
-          <h2 className="text-xl font-black tracking-wider uppercase text-white">
-            {targetMode === 'admin' ? 'ACCESSO AREA ADMIN' : 'ACCESSO AREA AZIENDE SaaS'}
-          </h2>
-          <p className="text-xs text-slate-400">
-            Inserisci le tue credenziali di sicurezza e risolvi il Captcha anti-bot per accedere.
-          </p>
-        </div>
-
-        {/* Success Alert */}
-        {isSuccess ? (
-          <div className="p-4 bg-emerald-500/20 border border-emerald-500/50 rounded-2xl flex items-center justify-center gap-3 text-emerald-300 font-bold text-sm">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span>Accesso Autorizzato! Reindirizzamento in corso...</span>
-          </div>
-        ) : (
-          <form onSubmit={handleLogin} className="space-y-4 text-xs">
-            {/* Username Input */}
-            <div className="space-y-1">
-              <label className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-amber-400" /> Username
-              </label>
-              <input
-                type="text"
-                required
-                placeholder={targetMode === 'admin' ? 'Username Admin (es. admin)' : 'Username Azienda (es. azienda)'}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 p-3 rounded-xl text-white font-bold outline-none transition-all placeholder:text-slate-600"
-              />
-            </div>
-
-            {/* Password Input */}
-            <div className="space-y-1">
-              <label className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-amber-400" /> Password
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 p-3 rounded-xl text-white font-bold outline-none transition-all placeholder:text-slate-600"
-              />
-            </div>
-
-            {/* Captcha Protection Block */}
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1">
-                  <KeyRound className="w-3.5 h-3.5" /> Protezione anti-bot Captcha
-                </span>
-                <button
-                  type="button"
-                  onClick={generateCaptcha}
-                  className="p-1 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
-                  title="Rigenera calcolo"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-600 to-yellow-400 p-0.5 shadow-lg">
+              <div className="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
+                <Key className="w-7 h-7 text-yellow-400" />
               </div>
+            </div>
+            <h2 className="text-xl font-bold text-white uppercase tracking-wider">
+              {targetMode === 'admin' ? 'Accesso Area Amministratore' : 'Accesso Portale Aziende 3D'}
+            </h2>
+            <p className="text-xs text-slate-400">
+              {targetMode === 'admin'
+                ? 'Inserisci la password di amministrazione per gestire aziende, 360° e regole punti.'
+                : 'Inserisci le credenziali del tuo mini-sito 3D.'}
+            </p>
+          </div>
 
-              <div className="flex items-center gap-3">
-                <div className="px-3 py-2 bg-black border border-slate-800 rounded-xl font-mono text-sm font-extrabold text-amber-300 tracking-wider shrink-0 select-none">
-                  {num1} + {num2} = ?
-                </div>
+          {errorMsg && (
+            <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-xs font-bold">
+              {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handlePortalSubmit} className="space-y-4">
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 uppercase block mb-1.5">
+                Password di Accesso
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <input
-                  type="number"
-                  required
-                  placeholder="Risultato"
-                  value={userCaptcha}
-                  onChange={(e) => setUserCaptcha(e.target.value)}
-                  className="flex-1 bg-black border border-slate-800 focus:border-amber-500 p-2.5 rounded-xl text-amber-300 font-mono font-bold text-center outline-none"
+                  type="password"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  autoFocus
+                  className="w-full bg-black border border-white/15 rounded-xl pl-9 pr-3 py-2.5 text-xs text-yellow-300 font-bold focus:border-yellow-500 focus:outline-none"
                 />
               </div>
+              <span className="text-[10px] text-slate-500 mt-1 block">Demo: inserisci qualsiasi password o "admin"</span>
             </div>
 
-            {/* Error Message Display */}
-            {errorMessage && (
-              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-2 text-red-400 text-xs font-bold">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-
-            {/* Demo Helper Box */}
-            <div className="p-3 bg-slate-900/40 border border-slate-800/80 rounded-2xl flex items-center justify-between gap-2 text-[11px]">
-              <div>
-                <span className="text-slate-400 font-bold block">Demo Test Credenziali:</span>
-                <span className="text-amber-300 font-mono font-bold">
-                  {targetMode === 'admin' ? 'admin / adminpass' : 'azienda / password123'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black font-extrabold rounded-lg border border-amber-500/40 transition-all cursor-pointer text-[10px] uppercase tracking-wider shrink-0"
-              >
-                Compila Demo
-              </button>
-            </div>
-
-            {/* Action Buttons */}
             <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
-                onClick={onCancel}
-                className="w-1/3 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-2xl uppercase tracking-wider text-xs transition-all cursor-pointer"
+                onClick={handleClose}
+                className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl text-xs font-bold uppercase"
               >
                 Annulla
               </button>
               <button
                 type="submit"
-                className={`w-2/3 py-3 font-black rounded-2xl uppercase tracking-wider text-xs shadow-lg transition-all cursor-pointer active:scale-95 ${
-                  targetMode === 'admin'
-                    ? 'bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white shadow-red-600/30'
-                    : 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black shadow-amber-500/30'
-                }`}
+                className="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs uppercase rounded-xl shadow-md"
               >
-                Accedi Ora
+                Accedi
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    );
+  }
+
+  // User VIP Profile Registration / Login Mode:
+  return (
+    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-[#0a0a0a] border border-amber-500/40 p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-[0_0_50px_rgba(245,158,11,0.2)] text-slate-100 relative animate-in zoom-in-95 space-y-6">
+        
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 hover:text-white flex items-center justify-center font-bold text-sm transition-all"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 p-0.5 shadow-[0_0_25px_rgba(212,175,55,0.3)]">
+            <div className="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
+              <ShieldCheck className="w-7 h-7 text-yellow-400" />
+            </div>
+          </div>
+
+          <h2 className="text-xl font-bold text-white uppercase tracking-wider">
+            {currentUser?.isLoggedIn ? 'Profilo Cliente VIP' : mode === 'register' ? 'Registrazione Rapida VIP' : 'Accedi al Tuo Account'}
+          </h2>
+          <p className="text-xs text-slate-400">
+            {currentUser?.isLoggedIn
+              ? 'I tuoi punti Bonus-Power e i tuoi coupon sono sincronizzati in modo sicuro.'
+              : 'Nessuna registrazione obbligatoria per esplorare. Registrati in 10 secondi per salvare punti e coupon!'}
+          </p>
+        </div>
+
+        {/* Privacy Guarantee Banner */}
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-[11px] text-amber-300 flex items-start gap-2.5">
+          <ShieldCheck className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="block text-yellow-300 uppercase font-bold">Privacy e Trasparenza 100%</strong>
+            Chiediamo solo <strong>Username, Email e Password</strong>. Nessuna carta di credito, nessun dato personale invasivo.
+          </div>
+        </div>
+
+        {/* Success message */}
+        {successMsg && (
+          <div className="p-3 bg-green-500/20 border border-green-500/50 rounded-2xl text-green-300 text-xs font-bold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
         )}
+
+        {/* Error message */}
+        {errorMsg && (
+          <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-xs font-bold">
+            {errorMsg}
+          </div>
+        )}
+
+        {/* If already logged in */}
+        {currentUser?.isLoggedIn ? (
+          <div className="space-y-4 pt-2">
+            <div className="p-4 bg-zinc-950 rounded-2xl border border-white/10 space-y-2 text-xs">
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span className="text-slate-400">Username:</span>
+                <span className="font-bold text-yellow-400">{currentUser.username}</span>
+              </div>
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span className="text-slate-400">Email:</span>
+                <span className="font-bold text-white">{currentUser.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Data Iscrizione:</span>
+                <span className="text-slate-300">{currentUser.createdAt}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                if (onLogout) onLogout();
+                if (onClose) onClose();
+              }}
+              className="w-full py-3 bg-red-950/80 hover:bg-red-900 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Disconnetti Account</span>
+            </button>
+          </div>
+        ) : (
+          /* Login / Register Form */
+          <form onSubmit={handleUserSubmit} className="space-y-4">
+            {/* Mode Switcher */}
+            <div className="grid grid-cols-2 p-1 bg-black rounded-xl border border-white/10 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setErrorMsg('');
+                }}
+                className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  mode === 'register' ? 'bg-yellow-500 text-black font-extrabold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Registrati</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setErrorMsg('');
+                }}
+                className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  mode === 'login' ? 'bg-yellow-500 text-black font-extrabold' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Accedi</span>
+              </button>
+            </div>
+
+            {mode === 'register' && (
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 uppercase block mb-1.5">
+                  Username Utente
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Es. MarioVIP"
+                    className="w-full bg-black border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-yellow-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 uppercase block mb-1.5">
+                Indirizzo Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="mariovip@email.it"
+                  className="w-full bg-black border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-300 uppercase block mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-black border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 hover:from-yellow-400 hover:to-yellow-200 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all flex items-center justify-center gap-2 mt-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{mode === 'register' ? 'Crea Account VIP Gratis' : 'Accedi e Sincronizza Punti'}</span>
+            </button>
+          </form>
+        )}
+
       </div>
     </div>
   );
 };
+

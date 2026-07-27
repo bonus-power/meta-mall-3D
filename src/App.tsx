@@ -10,6 +10,7 @@ import {
   Badge,
   SponsorPanel,
   AdminCollaborator,
+  PointsRuleConfig,
 } from './types';
 import {
   INITIAL_PAVILIONS,
@@ -115,17 +116,134 @@ export default function App() {
 
   // UI Modals
   const [showGamification, setShowGamification] = useState<boolean>(false);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showChatbot, setShowChatbot] = useState<boolean>(true);
   const [showExpoModal, setShowExpoModal] = useState<boolean>(false);
 
-  // User Stats
-  const [userStats] = useState<UserStats>({
+  // Admin Configurable Points Rules
+  const [pointsRules, setPointsRules] = useState<PointsRuleConfig>({
+    dailyLoginPoints: 100,
+    favoriteCompanyPoints: 25,
+    visitPavilionPoints: 50,
+    surveyPoints: 150,
+    viewPosterPoints: 30,
+    watchVideoPoints: 60,
+    listenMusicPoints: 40,
+    centerCustomPoints: 80,
+    centerCustomLabel: 'Interazione Centro Galleria 3D',
+  });
+
+  // User Stats & Customer Profile
+  const [userStats, setUserStats] = useState<UserStats>({
     level: 3,
     xp: 450,
     coins: 1250,
     visitedPavilions: ['shopping', 'food', 'tech'],
     unlockedBadges: ['b1'],
+    favoriteCompanyIds: ['c1', 'c2'],
+    profile: {
+      id: 'usr-vip-1',
+      username: 'MarioEsploratore',
+      email: 'mario.vip@email.it',
+      isLoggedIn: true,
+      createdAt: '25/07/2026',
+    },
+    redeemedCoupons: [
+      {
+        id: 'red-init-1',
+        title: 'Buono Caffe & Snack Food Court',
+        code: 'BONUS-POWER-1024',
+        pointsCost: 200,
+        redeemedAt: '25/07/2026',
+        discount: '3€ OMAGGIO',
+        category: 'Food & Ristorazione',
+      },
+    ],
+    activityHistory: [
+      {
+        id: 'act-init-1',
+        type: 'earn',
+        title: 'Bonus Benvenuto Profilo VIP',
+        pointsChange: 1000,
+        timestamp: '25/07/2026 10:00',
+      },
+      {
+        id: 'act-init-2',
+        type: 'earn',
+        title: 'Esplorazione Padiglioni 3D Fiera',
+        pointsChange: 250,
+        timestamp: '25/07/2026 10:15',
+      },
+    ],
   });
+
+  const handleCreditUserPoints = (email: string, points: number) => {
+    setUserStats((prev) => ({
+      ...prev,
+      coins: prev.coins + points,
+      activityHistory: [
+        {
+          id: `act-${Date.now()}`,
+          type: 'earn',
+          title: `Accredito Manuale Admin (${email})`,
+          pointsChange: points,
+          timestamp: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        },
+        ...(prev.activityHistory || []),
+      ],
+    }));
+  };
+
+  const handleEarnPoints = (points: number, title: string) => {
+    setUserStats((prev) => ({
+      ...prev,
+      coins: prev.coins + points,
+      activityHistory: [
+        {
+          id: `act-${Date.now()}`,
+          type: 'earn',
+          title: title,
+          pointsChange: points,
+          timestamp: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        },
+        ...(prev.activityHistory || []),
+      ],
+    }));
+  };
+
+  const handleToggleFavoriteCompany = (companyId: string) => {
+    const currentFavs = userStats.favoriteCompanyIds || [];
+    const isFav = currentFavs.includes(companyId);
+    let updatedFavs: string[];
+    let ptsBonus = 0;
+    const companyObj = companies.find((c) => c.id === companyId);
+    const companyName = companyObj ? companyObj.name : 'Azienda';
+
+    if (isFav) {
+      updatedFavs = currentFavs.filter((id) => id !== companyId);
+    } else {
+      updatedFavs = [...currentFavs, companyId];
+      ptsBonus = pointsRules.favoriteCompanyPoints; // Dynamic admin-configured points rule
+    }
+
+    const newHistory = ptsBonus > 0 ? [
+      {
+        id: `act-${Date.now()}`,
+        type: 'favorite' as const,
+        title: `Salvata nei Preferiti: ${companyName}`,
+        pointsChange: ptsBonus,
+        timestamp: new Date().toLocaleDateString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+      },
+      ...(userStats.activityHistory || []),
+    ] : (userStats.activityHistory || []);
+
+    setUserStats({
+      ...userStats,
+      coins: userStats.coins + ptsBonus,
+      favoriteCompanyIds: updatedFavs,
+      activityHistory: newHistory,
+    });
+  };
 
   // Handle position updates from 3D corridor
   const handlePositionUpdate = (currentX: number, activePavilion: Pavilion | null) => {
@@ -201,7 +319,12 @@ export default function App() {
         isAutoTour={isAutoTour}
         onToggleAutoTour={() => setIsAutoTour(!isAutoTour)}
         onOpenGamification={() => setShowGamification(true)}
+        onOpenAuth={() => setShowAuthModal(true)}
         onToggleChatbot={() => setShowChatbot(!showChatbot)}
+        userCoins={userStats.coins}
+        currentUser={userStats.profile}
+        pointsRules={pointsRules}
+        onEarnPoints={handleEarnPoints}
       />
 
       {/* Main 3D Environment / Views Container */}
@@ -249,10 +372,13 @@ export default function App() {
               panoramas={panoramas}
               sponsorPanels={sponsorPanels}
               collaborators={collaborators}
+              pointsRules={pointsRules}
               onUpdateCompanies={setCompanies}
               onUpdatePanoramas={setPanoramas}
               onUpdateSponsorPanels={setSponsorPanels}
               onUpdateCollaborators={setCollaborators}
+              onUpdatePointsRules={setPointsRules}
+              onCreditUserPoints={handleCreditUserPoints}
             />
           ) : (
             <AuthModal
@@ -286,6 +412,8 @@ export default function App() {
             setSponsorPanels((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
             setSelectedSponsorPanel(updated);
           }}
+          pointsRules={pointsRules}
+          onEarnPoints={handleEarnPoints}
         />
       )}
 
@@ -312,15 +440,36 @@ export default function App() {
           company={selectedCompany}
           onClose={() => setSelectedCompany(null)}
           onUpdateCompany={handleUpdateCompany}
+          isFavorite={(userStats.favoriteCompanyIds || []).includes(selectedCompany.id)}
+          onToggleFavorite={handleToggleFavoriteCompany}
+          pointsRules={pointsRules}
+          onEarnPoints={handleEarnPoints}
         />
       )}
 
-      {/* Gamification VIP Badges Modal */}
+      {/* Gamification & Customer Profile Modal */}
       <GamificationModal
         isOpen={showGamification}
         onClose={() => setShowGamification(false)}
         stats={userStats}
         badges={badges}
+        companies={companies}
+        onUpdateStats={setUserStats}
+        onSelectCompany={(comp) => setSelectedCompany(comp)}
+        onToggleFavoriteCompany={handleToggleFavoriteCompany}
+      />
+
+      {/* Customer VIP Auth Modal (Username, Email, Password - Privacy First) */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        currentUser={userStats.profile}
+        onLogin={(profile) => {
+          setUserStats((prev) => ({ ...prev, profile }));
+        }}
+        onLogout={() => {
+          setUserStats((prev) => ({ ...prev, profile: undefined }));
+        }}
       />
 
       {/* Floating AI Chatbot Assistant Guide */}

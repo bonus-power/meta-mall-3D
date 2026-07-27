@@ -167,12 +167,55 @@ export interface ChatMessage {
   };
 }
 
+export interface RedeemedCoupon {
+  id: string;
+  title: string;
+  code: string;
+  pointsCost: number;
+  redeemedAt: string;
+  companyName?: string;
+  discount: string;
+  category?: string;
+}
+
+export interface ActivityLogItem {
+  id: string;
+  type: 'earn' | 'redeem' | 'favorite' | 'badge';
+  title: string;
+  pointsChange: number;
+  timestamp: string;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  isLoggedIn: boolean;
+  createdAt: string;
+}
+
+export interface PointsRuleConfig {
+  dailyLoginPoints: number;
+  favoriteCompanyPoints: number;
+  visitPavilionPoints: number;
+  surveyPoints: number;
+  viewPosterPoints: number;
+  watchVideoPoints: number;
+  listenMusicPoints: number;
+  centerCustomPoints: number;
+  centerCustomLabel?: string;
+}
+
 export interface UserStats {
   level: number;
   xp: number;
   coins: number;
   visitedPavilions: string[];
   unlockedBadges: string[];
+  favoriteCompanyIds?: string[];
+  redeemedCoupons?: RedeemedCoupon[];
+  activityHistory?: ActivityLogItem[];
+  profile?: UserProfile;
 }
 
 export interface Badge {

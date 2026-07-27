@@ -2042,14 +2042,14 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           playerPosRef.current.y = 1.7;
         }
 
-        // Center avatar/camera on corridor floor (Z = 0) whenever moving along corridor axis without strafing
+        // Center avatar/camera on corridor floor (Z = 0) whenever moving along corridor axis without strafing, or when in 1st person mode without strafing
         let normYawMove = playerYawRef.current % (Math.PI * 2);
         if (normYawMove < 0) normYawMove += Math.PI * 2;
         const isFacingCorridorAxis =
           (normYawMove >= Math.PI / 4 && normYawMove <= (3 * Math.PI) / 4) ||
           (normYawMove >= (5 * Math.PI) / 4 && normYawMove <= (7 * Math.PI) / 4);
 
-        if (isFacingCorridorAxis && moveStrafe === 0) {
+        if ((isFacingCorridorAxis || cameraViewModeRef.current === '1st_person') && moveStrafe === 0) {
           playerPosRef.current.z *= 0.7;
           if (Math.abs(playerPosRef.current.z) < 0.01) {
             playerPosRef.current.z = 0;
@@ -2358,7 +2358,11 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
                 🎥 3ª Pers.
               </button>
               <button
-                onClick={() => setCameraViewMode('1st_person')}
+                onClick={() => {
+                  setCameraViewMode('1st_person');
+                  playerPosRef.current.z = 0;
+                  playerPitchRef.current = 0;
+                }}
                 className={`flex-1 py-0.5 sm:py-1 px-1 sm:px-1.5 rounded-md sm:rounded-lg text-[9px] sm:text-[11px] font-semibold flex items-center justify-center gap-0.5 sm:gap-1 transition-all ${
                   cameraViewMode === '1st_person'
                     ? 'bg-amber-400/25 text-amber-300 border border-amber-400/50 shadow-sm'
@@ -2385,7 +2389,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       )}
 
       {/* 2D Mini-Map Planimetria Overlay for Mall Corridor */}
-      <div className={`fixed z-40 transition-all ${isFullscreen ? 'top-3 right-3 sm:right-6' : 'top-14 sm:top-20 right-2 sm:right-4'}`}>
+      <div className={`fixed z-40 transition-all ${isFullscreen ? 'top-3 right-3 sm:right-6' : 'top-20 sm:top-24 right-2 sm:right-6'}`}>
         <MallMiniMap2D
           pavilions={pavilions}
           companies={companies}

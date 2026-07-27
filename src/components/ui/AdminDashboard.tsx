@@ -25,16 +25,21 @@ import {
   Eye,
 } from 'lucide-react';
 
+import { PointsRuleConfig } from '../../types';
+
 interface AdminDashboardProps {
   companies: Company[];
   pavilions: Pavilion[];
   panoramas: Panorama360[];
   sponsorPanels?: SponsorPanel[];
   collaborators?: AdminCollaborator[];
+  pointsRules?: PointsRuleConfig;
   onUpdateCompanies: (companies: Company[]) => void;
   onUpdatePanoramas: (panoramas: Panorama360[]) => void;
   onUpdateSponsorPanels?: (panels: SponsorPanel[]) => void;
   onUpdateCollaborators?: (collaborators: AdminCollaborator[]) => void;
+  onUpdatePointsRules?: (rules: PointsRuleConfig) => void;
+  onCreditUserPoints?: (email: string, points: number) => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -43,12 +48,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   panoramas,
   sponsorPanels = [],
   collaborators = [],
+  pointsRules = {
+    dailyLoginPoints: 100,
+    favoriteCompanyPoints: 25,
+    visitPavilionPoints: 50,
+    surveyPoints: 150,
+    viewPosterPoints: 30,
+    watchVideoPoints: 60,
+    listenMusicPoints: 40,
+    centerCustomPoints: 80,
+    centerCustomLabel: 'Interazione Centro Galleria 3D',
+  },
   onUpdateCompanies,
   onUpdatePanoramas,
   onUpdateSponsorPanels,
   onUpdateCollaborators,
+  onUpdatePointsRules,
+  onCreditUserPoints,
 }) => {
-  const [activeTab, setActiveTab] = useState<'companies' | 'pavilions' | 'panoramas' | 'sponsors' | 'embed'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'pavilions' | 'panoramas' | 'sponsors' | 'gamification' | 'embed'>('companies');
+  const [localRules, setLocalRules] = useState<PointsRuleConfig>(pointsRules);
+  const [creditEmail, setCreditEmail] = useState('');
+  const [creditAmount, setCreditAmount] = useState(100);
+  const [creditSuccess, setCreditSuccess] = useState('');
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -242,6 +264,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Megaphone className="w-4 h-4 text-cyan-400" />
             <span>Sponsor & Pareti 3D ({sponsorPanels.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('gamification')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+              activeTab === 'gamification'
+                ? 'bg-yellow-500 text-black shadow-[0_0_12px_rgba(212,175,55,0.35)]'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <span>Regole Punti & Coupon</span>
           </button>
 
           <button
@@ -1111,6 +1145,236 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             >
               Salva Modifiche Manifesto
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Regole Punti & Gamification */}
+      {activeTab === 'gamification' && (
+        <div className="space-y-6">
+          <div className="bg-[#080808] p-5 rounded-2xl border border-yellow-500/40 shadow-xl space-y-2">
+            <h3 className="text-yellow-400 font-extrabold text-sm uppercase tracking-wider flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-400" />
+              Pannello Amministratore: Regole Accumulo Punti & Privacy Cliente
+            </h3>
+            <p className="text-xs text-slate-300">
+              Imposta quanti punti Bonus-Power assegnare agli utenti per ogni azione e gestisci l'accredito manuale dei punti.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Box 1: Configurazione Valore Punti */}
+            <div className="p-5 bg-zinc-950 rounded-2xl border border-white/10 space-y-4">
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/10 pb-2">
+                <Sparkles className="w-4 h-4 text-yellow-400" />
+                Regole Assegnazione Punti Automatica
+              </h4>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">
+                    Bonus Giornaliero Login (PTS)
+                  </label>
+                  <input
+                    type="number"
+                    value={localRules.dailyLoginPoints}
+                    onChange={(e) => setLocalRules({ ...localRules, dailyLoginPoints: Number(e.target.value) })}
+                    className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-yellow-300 font-bold"
+                  />
+                  <span className="text-[10px] text-slate-400">Punti assegnati ogni 24 ore alla prima visita del cliente.</span>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">
+                    Salvataggio Azienda nei Preferiti (PTS)
+                  </label>
+                  <input
+                    type="number"
+                    value={localRules.favoriteCompanyPoints}
+                    onChange={(e) => setLocalRules({ ...localRules, favoriteCompanyPoints: Number(e.target.value) })}
+                    className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-yellow-300 font-bold"
+                  />
+                  <span className="text-[10px] text-slate-400">Punti accreditati quando l'utente clicca il cuore ❤️ su una scheda azienda.</span>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">
+                    Esplorazione Padiglione 3D (PTS)
+                  </label>
+                  <input
+                    type="number"
+                    value={localRules.visitPavilionPoints}
+                    onChange={(e) => setLocalRules({ ...localRules, visitPavilionPoints: Number(e.target.value) })}
+                    className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-yellow-300 font-bold"
+                  />
+                  <span className="text-[10px] text-slate-400">Punti per l'ingresso nei vari settori e padiglioni della fiera.</span>
+                </div>
+
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1">
+                    Compilazione Sondaggio / Feedback (PTS)
+                  </label>
+                  <input
+                    type="number"
+                    value={localRules.surveyPoints}
+                    onChange={(e) => setLocalRules({ ...localRules, surveyPoints: Number(e.target.value) })}
+                    className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-yellow-300 font-bold"
+                  />
+                </div>
+
+                <div className="pt-2 border-t border-white/10 space-y-3">
+                  <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">
+                    🖼️ 🎬 🎵 PUNTI MEDIA & INTERAZIONI CENTRO COMMERCIALE
+                  </span>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">
+                      🖼️ Visione Manifesto / Banner Pubblicitario (PTS)
+                    </label>
+                    <input
+                      type="number"
+                      value={localRules.viewPosterPoints || 30}
+                      onChange={(e) => setLocalRules({ ...localRules, viewPosterPoints: Number(e.target.value) })}
+                      className="w-full bg-black border border-amber-500/30 p-2.5 rounded-xl text-yellow-300 font-bold"
+                    />
+                    <span className="text-[10px] text-slate-400">Punti accreditati quando l'utente apre/guarda un manifesto della galleria.</span>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">
+                      🎬 Visione Video Promo / YouTube 3D (PTS)
+                    </label>
+                    <input
+                      type="number"
+                      value={localRules.watchVideoPoints || 60}
+                      onChange={(e) => setLocalRules({ ...localRules, watchVideoPoints: Number(e.target.value) })}
+                      className="w-full bg-black border border-amber-500/30 p-2.5 rounded-xl text-yellow-300 font-bold"
+                    />
+                    <span className="text-[10px] text-slate-400">Punti assegnati alla visione dei video promozionali e tour nei mini-siti.</span>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">
+                      🎵 Ascolto Musica / Stream Audio Galleria (PTS)
+                    </label>
+                    <input
+                      type="number"
+                      value={localRules.listenMusicPoints || 40}
+                      onChange={(e) => setLocalRules({ ...localRules, listenMusicPoints: Number(e.target.value) })}
+                      className="w-full bg-black border border-amber-500/30 p-2.5 rounded-xl text-yellow-300 font-bold"
+                    />
+                    <span className="text-[10px] text-slate-400">Punti per l'ascolto della musica o radio di sottofondo della Galleria 3D.</span>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">
+                      🏛️ Attività Centro Commerciale (PTS)
+                    </label>
+                    <input
+                      type="number"
+                      value={localRules.centerCustomPoints || 80}
+                      onChange={(e) => setLocalRules({ ...localRules, centerCustomPoints: Number(e.target.value) })}
+                      className="w-full bg-black border border-amber-500/30 p-2.5 rounded-xl text-yellow-300 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">
+                      ✏️ Titolo Attività Centro Personalizzata Admin
+                    </label>
+                    <input
+                      type="text"
+                      value={localRules.centerCustomLabel || 'Interazione Centro Galleria 3D'}
+                      onChange={(e) => setLocalRules({ ...localRules, centerCustomLabel: e.target.value })}
+                      placeholder="es. Partecipazione Evento Plaza 3D"
+                      className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-white font-semibold"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (onUpdatePointsRules) onUpdatePointsRules(localRules);
+                    alert('Regole punti salvate con successo!');
+                  }}
+                  className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold uppercase text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 mt-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salva Regole Punti Admin</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Box 2: Accredito Manuale & Policy Privacy */}
+            <div className="space-y-4">
+              <div className="p-5 bg-zinc-950 rounded-2xl border border-white/10 space-y-4">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/10 pb-2">
+                  <Users className="w-4 h-4 text-cyan-400" />
+                  Accredito Manuale Punti ad Utente
+                </h4>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">Email Cliente / Username</label>
+                    <input
+                      type="text"
+                      value={creditEmail}
+                      onChange={(e) => setCreditEmail(e.target.value)}
+                      placeholder="es. cliente@email.it"
+                      className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 font-bold block mb-1">Quantità Punti Bonus-Power da Assegnare</label>
+                    <input
+                      type="number"
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(Number(e.target.value))}
+                      className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-yellow-300 font-bold"
+                    />
+                  </div>
+
+                  {creditSuccess && (
+                    <div className="p-2 bg-green-500/20 border border-green-500/40 text-green-300 text-xs font-bold rounded-xl">
+                      {creditSuccess}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      if (!creditEmail) {
+                        alert('Inserisci un indirizzo email valido.');
+                        return;
+                      }
+                      if (onCreditUserPoints) {
+                        onCreditUserPoints(creditEmail, creditAmount);
+                      }
+                      setCreditSuccess(`Inviati +${creditAmount} Punti Bonus-Power a ${creditEmail}!`);
+                      setTimeout(() => setCreditSuccess(''), 3000);
+                    }}
+                    className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-200 text-black font-extrabold uppercase text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                  >
+                    <Zap className="w-4 h-4 fill-black" />
+                    <span>Accredita Punti a Cliente</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Architecture & Privacy Note */}
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 text-xs">
+                <h5 className="font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-yellow-400" />
+                  Architettura Login & Privacy Semplificata
+                </h5>
+                <p className="text-slate-300 leading-relaxed text-[11px]">
+                  <strong>1. Esplorazione Libera per Tutti:</strong> I visitatori possono percorrere la fiera 3D, entrare nei padiglioni, visualizzare le schede aziendali e i tour 360° senza alcuna registrazione.
+                </p>
+                <p className="text-slate-300 leading-relaxed text-[11px]">
+                  <strong>2. Registrazione Minimale Privacy-First:</strong> Quando il cliente intende accumulare punti, salvare preferiti o riscattare coupon, effettua la registrazione chiedendo esclusivamente <strong>Username, Email e Password</strong>.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

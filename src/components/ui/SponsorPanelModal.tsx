@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SponsorPanel } from '../../types';
+import { SponsorPanel, PointsRuleConfig } from '../../types';
 import {
   X,
   ExternalLink,
@@ -40,6 +40,8 @@ interface SponsorPanelModalProps {
   onClose: () => void;
   onStepBack?: () => void;
   onUpdatePanel: (updated: SponsorPanel) => void;
+  pointsRules?: PointsRuleConfig;
+  onEarnPoints?: (points: number, title: string) => void;
 }
 
 export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
@@ -47,10 +49,25 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
   onClose,
   onStepBack,
   onUpdatePanel,
+  pointsRules = {
+    dailyLoginPoints: 100,
+    favoriteCompanyPoints: 25,
+    visitPavilionPoints: 50,
+    surveyPoints: 150,
+    viewPosterPoints: 30,
+    watchVideoPoints: 60,
+    listenMusicPoints: 40,
+    centerCustomPoints: 80,
+  },
+  onEarnPoints,
 }) => {
   const [activeTab, setActiveTab] = useState<'view' | 'buy' | 'edit'>(
     panel.status === 'available' ? 'buy' : 'view'
   );
+
+  const [hasClaimedPosterPoints, setHasClaimedPosterPoints] = useState(false);
+  const [hasClaimedVideoPoints, setHasClaimedVideoPoints] = useState(false);
+  const [claimFeedback, setClaimFeedback] = useState<string | null>(null);
 
   const initialEmbedUrl = panel.youtubeEmbedUrl || parseYouTubeEmbedUrl(panel.videoUrl) || '';
   const [showVideo, setShowVideo] = useState<boolean>(!!initialEmbedUrl);
@@ -329,6 +346,57 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Points Reward Button for Manifesto / Video */}
+                  {showVideo && initialEmbedUrl ? (
+                    <button
+                      disabled={hasClaimedVideoPoints}
+                      onClick={() => {
+                        const pts = pointsRules.watchVideoPoints || 60;
+                        if (onEarnPoints) onEarnPoints(pts, `Visione Video: ${panel.title}`);
+                        setHasClaimedVideoPoints(true);
+                        setClaimFeedback(`+${pts} PTS Guadagnati per la visione video!`);
+                        setTimeout(() => setClaimFeedback(null), 3000);
+                      }}
+                      className={`px-4 py-2.5 rounded-xl font-extrabold text-xs uppercase flex items-center gap-1.5 transition-all shadow-md ${
+                        hasClaimedVideoPoints
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
+                          : 'bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white animate-pulse'
+                      }`}
+                    >
+                      <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                      {hasClaimedVideoPoints
+                        ? 'Punti Video Riscattai ✓'
+                        : `Riscatta +${pointsRules.watchVideoPoints || 60} PTS Video`}
+                    </button>
+                  ) : (
+                    <button
+                      disabled={hasClaimedPosterPoints}
+                      onClick={() => {
+                        const pts = pointsRules.viewPosterPoints || 30;
+                        if (onEarnPoints) onEarnPoints(pts, `Visione Manifesto: ${panel.title}`);
+                        setHasClaimedPosterPoints(true);
+                        setClaimFeedback(`+${pts} PTS Guadagnati per la visione manifesto!`);
+                        setTimeout(() => setClaimFeedback(null), 3000);
+                      }}
+                      className={`px-4 py-2.5 rounded-xl font-extrabold text-xs uppercase flex items-center gap-1.5 transition-all shadow-md ${
+                        hasClaimedPosterPoints
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
+                          : 'bg-gradient-to-r from-yellow-500 to-amber-400 hover:from-yellow-400 hover:to-amber-300 text-black'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4 text-black" />
+                      {hasClaimedPosterPoints
+                        ? 'Punti Manifesto Riscattai ✓'
+                        : `Riscatta +${pointsRules.viewPosterPoints || 30} PTS Manifesto`}
+                    </button>
+                  )}
+
+                  {claimFeedback && (
+                    <div className="px-3 py-1 bg-emerald-500/30 border border-emerald-400/60 text-emerald-200 text-xs font-bold rounded-lg animate-bounce">
+                      {claimFeedback}
+                    </div>
+                  )}
+
                   {panel.websiteUrl && (
                     <a
                       href={panel.websiteUrl}

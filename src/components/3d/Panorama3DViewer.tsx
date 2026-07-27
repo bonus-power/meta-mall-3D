@@ -170,7 +170,7 @@ export const Panorama3DViewer: React.FC<Panorama3DViewerProps> = ({ panoramas })
       )}
 
       {/* Panorama Selector Bar */}
-      <div className="absolute top-6 left-6 right-6 z-20 flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-amber-500/30 shadow-2xl">
+      <div className="absolute top-20 sm:top-24 left-4 sm:left-6 right-4 sm:right-6 z-20 flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 backdrop-blur-xl p-4 rounded-2xl border border-amber-500/30 shadow-2xl">
         <div className="flex items-center gap-3">
           <span className="text-xl">🖼️</span>
           <div>

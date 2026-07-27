@@ -17,19 +17,32 @@ import {
   Star,
   ShoppingBag,
   Compass,
+  Heart,
 } from 'lucide-react';
 import { CompanyVirtualTourViewer } from '../3d/CompanyVirtualTourViewer';
+
+import { PointsRuleConfig } from '../../types';
 
 interface CompanyMiniSiteModalProps {
   company: Company | null;
   onClose: () => void;
   onUpdateCompany: (updatedCompany: Company) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (companyId: string) => void;
+  pointsRules?: PointsRuleConfig;
+  onEarnPoints?: (points: number, title: string) => void;
 }
 
 export const CompanyMiniSiteModal: React.FC<CompanyMiniSiteModalProps> = ({
   company,
   onClose,
   onUpdateCompany,
+  isFavorite = false,
+  onToggleFavorite,
+  pointsRules = {
+    watchVideoPoints: 60,
+  },
+  onEarnPoints,
 }) => {
   if (!company) return null;
 
@@ -37,6 +50,8 @@ export const CompanyMiniSiteModal: React.FC<CompanyMiniSiteModalProps> = ({
   const [showEmbedCode, setShowEmbedCode] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [showVirtualTour, setShowVirtualTour] = useState(false);
+  const [claimedVideo, setClaimedVideo] = useState(false);
+  const [videoFeedback, setVideoFeedback] = useState<string | null>(null);
 
   const embedSnippet = `<iframe src="${window.location.origin}/embed/company/${company.id}" width="100%" height="650" frameborder="0" style="border-radius:24px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);"></iframe>`;
 
@@ -114,8 +129,23 @@ export const CompanyMiniSiteModal: React.FC<CompanyMiniSiteModalProps> = ({
               </div>
             </div>
 
-            {/* Header Action Buttons: Virtual Tour 360° & Direct Bonus-Power Link */}
-            <div className="flex items-center gap-2">
+            {/* Header Action Buttons: Favorite, Virtual Tour 360° & Direct Bonus-Power Link */}
+            <div className="flex flex-wrap items-center gap-2">
+              {onToggleFavorite && (
+                <button
+                  onClick={() => onToggleFavorite(company.id)}
+                  className={`px-3.5 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all border ${
+                    isFavorite
+                      ? 'bg-red-600 text-white border-red-400 shadow-[0_0_20px_rgba(220,38,38,0.5)]'
+                      : 'bg-black/80 hover:bg-black text-white/80 hover:text-white border-white/20'
+                  }`}
+                  title={isFavorite ? 'Rimuovi dai Preferiti' : 'Salva nei Preferiti'}
+                >
+                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current text-white' : 'text-red-400'}`} />
+                  <span>{isFavorite ? 'Nei Preferiti' : 'Salva Preferito'}</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setShowVirtualTour(true)}
                 className="px-4 py-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 hover:from-yellow-400 hover:to-yellow-200 text-black font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-[0_0_25px_rgba(255,215,0,0.5)] flex items-center gap-2 transform hover:scale-105 transition-all border border-yellow-200"
@@ -204,10 +234,39 @@ export const CompanyMiniSiteModal: React.FC<CompanyMiniSiteModalProps> = ({
           {/* YouTube Video Section */}
           {youtubeUrl && (
             <div>
-              <h3 className="text-yellow-500 font-bold text-xs mb-3 uppercase tracking-widest flex items-center gap-2">
-                <Youtube className="w-4 h-4 text-red-500" />
-                <span>Video Presentazione YouTube</span>
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-yellow-500 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                  <Youtube className="w-4 h-4 text-red-500" />
+                  <span>Video Presentazione YouTube</span>
+                </h3>
+
+                <div className="flex items-center gap-2">
+                  {videoFeedback && (
+                    <span className="text-xs text-emerald-400 font-bold animate-bounce">
+                      {videoFeedback}
+                    </span>
+                  )}
+                  <button
+                    disabled={claimedVideo}
+                    onClick={() => {
+                      const pts = pointsRules?.watchVideoPoints || 60;
+                      if (onEarnPoints) onEarnPoints(pts, `Visione Video: ${company.name}`);
+                      setClaimedVideo(true);
+                      setVideoFeedback(`+${pts} PTS Riscattai!`);
+                      setTimeout(() => setVideoFeedback(null), 3000);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs uppercase flex items-center gap-1.5 transition-all ${
+                      claimedVideo
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
+                        : 'bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 text-white shadow-md'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                    <span>{claimedVideo ? 'Punti Video Ottenuti ✓' : `Riscatta +${pointsRules?.watchVideoPoints || 60} PTS Video`}</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="aspect-video w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
                 <iframe
                   src={youtubeUrl}

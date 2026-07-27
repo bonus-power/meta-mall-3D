@@ -172,7 +172,7 @@ export const GlobeMap3D: React.FC<GlobeMap3DProps> = ({
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
       {/* Top Header Overlay Control Bar */}
-      <div className="absolute top-4 left-4 right-4 z-20 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pointer-events-none">
+      <div className="absolute top-16 sm:top-20 left-4 right-4 z-20 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pointer-events-none">
         {/* Search Bar & Category Badges */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-slate-800/80 shadow-2xl pointer-events-auto max-w-2xl flex-1">
           {/* Search Input */}
@@ -271,7 +271,7 @@ export const GlobeMap3D: React.FC<GlobeMap3DProps> = ({
       </div>
 
       {/* Floating Left Side Custom Zoom Controls (+ / - 20%) */}
-      <div className="absolute top-24 sm:top-20 left-4 z-20 flex flex-col gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800/80 shadow-2xl">
+      <div className="absolute top-36 sm:top-36 left-4 z-20 flex flex-col gap-2 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800/80 shadow-2xl">
         <button
           onClick={handleZoomIn}
           className="p-2.5 bg-slate-950 hover:bg-amber-500 hover:text-black text-amber-400 rounded-xl border border-slate-800 transition-all active:scale-95 shadow-md flex items-center justify-center cursor-pointer"

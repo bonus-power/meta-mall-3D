@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavMode, Pavilion } from '../../types';
+import { NavMode, Pavilion, UserProfile } from '../../types';
 import {
   Compass,
   Globe,
@@ -18,7 +18,14 @@ import {
   Minimize2,
   ArrowLeft,
   List,
+  UserCheck,
+  UserPlus,
+  Music,
+  Volume2,
+  VolumeX,
+  Radio,
 } from 'lucide-react';
+import { PointsRuleConfig } from '../../types';
 
 interface NavigationOverlayProps {
   currentMode: NavMode;
@@ -35,7 +42,12 @@ interface NavigationOverlayProps {
   isAutoTour: boolean;
   onToggleAutoTour: () => void;
   onOpenGamification: () => void;
+  onOpenAuth?: () => void;
   onToggleChatbot: () => void;
+  userCoins?: number;
+  currentUser?: UserProfile;
+  pointsRules?: PointsRuleConfig;
+  onEarnPoints?: (points: number, title: string) => void;
 }
 
 export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
@@ -53,10 +65,23 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
   isAutoTour,
   onToggleAutoTour,
   onOpenGamification,
+  onOpenAuth,
   onToggleChatbot,
+  userCoins = 1250,
+  currentUser,
+  pointsRules = {
+    listenMusicPoints: 40,
+    centerCustomPoints: 80,
+    centerCustomLabel: 'Interazione Centro Galleria 3D',
+  },
+  onEarnPoints,
 }) => {
   const [showTeleportModal, setShowTeleportModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
+  const [claimedMusicPoints, setClaimedMusicPoints] = useState(false);
+  const [claimedCenterPoints, setClaimedCenterPoints] = useState(false);
+  const [mediaFeedback, setMediaFeedback] = useState<string | null>(null);
 
   const triggerResizeEvents = () => {
     const fire = () => window.dispatchEvent(new Event('resize'));
@@ -198,7 +223,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
         </div>
       ) : (
         /* Standard Header in Normal View Mode */
-        <header className="absolute top-0 left-0 right-0 z-30 bg-black/80 backdrop-blur-md border-b border-white/10 px-2.5 py-1.5 sm:px-6 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 max-w-full overflow-hidden">
+        <header className="absolute top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-white/10 px-2.5 py-1.5 sm:px-6 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 max-w-full overflow-hidden shadow-xl">
           {/* Brand Logo */}
           <div className="flex items-center gap-2 sm:gap-3.5 cursor-pointer shrink-0" onClick={() => onModeChange('corridor')}>
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-tr from-yellow-600 via-yellow-400 to-yellow-200 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.4)]">
@@ -290,8 +315,77 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
             )}
           </nav>
 
-          {/* Right Tools (Teleport, VR, Fullscreen, Gamification, Chatbot) */}
+          {/* Right Tools (Music Radio, Center Task, Teleport, VR, Fullscreen, Gamification, Chatbot) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Music Radio Stream Control with Points Award */}
+            <button
+              onClick={() => {
+                const nextPlaying = !isPlayingMusic;
+                setIsPlayingMusic(nextPlaying);
+                if (nextPlaying && !claimedMusicPoints) {
+                  const pts = pointsRules?.listenMusicPoints || 40;
+                  if (onEarnPoints) onEarnPoints(pts, 'Ascolto Musica / Radio Galleria 3D');
+                  setClaimedMusicPoints(true);
+                  setMediaFeedback(`+${pts} PTS Musica Riscattai!`);
+                  setTimeout(() => setMediaFeedback(null), 3500);
+                }
+              }}
+              className={`flex items-center gap-1 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg text-[10px] sm:text-xs uppercase tracking-wider font-bold transition-all border ${
+                isPlayingMusic
+                  ? 'bg-gradient-to-r from-yellow-500/30 to-amber-500/20 border-yellow-400 text-yellow-300 shadow-[0_0_12px_rgba(245,158,11,0.3)] animate-pulse'
+                  : 'bg-black/50 border-white/20 text-white/80 hover:text-white'
+              }`}
+              title={isPlayingMusic ? 'Disattiva Musica Galleria Meta-TV' : `Attiva Musica Galleria (+${pointsRules?.listenMusicPoints || 40} PTS)`}
+            >
+              {isPlayingMusic ? <Volume2 className="w-3.5 h-3.5 text-yellow-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+              <span className="hidden xl:inline">
+                {isPlayingMusic ? 'Musica ON' : 'Musica Galleria'}
+              </span>
+              {!claimedMusicPoints && (
+                <span className="px-1 py-0.2 text-[9px] bg-yellow-500 text-black font-black rounded-full">
+                  +{pointsRules?.listenMusicPoints || 40}
+                </span>
+              )}
+            </button>
+
+            {/* Center Commercial Area Task Button */}
+            <button
+              onClick={() => {
+                if (!claimedCenterPoints) {
+                  const pts = pointsRules?.centerCustomPoints || 80;
+                  const label = pointsRules?.centerCustomLabel || 'Interazione Centro Galleria 3D';
+                  if (onEarnPoints) onEarnPoints(pts, label);
+                  setClaimedCenterPoints(true);
+                  setMediaFeedback(`+${pts} PTS per ${label}!`);
+                  setTimeout(() => setMediaFeedback(null), 3500);
+                } else {
+                  setMediaFeedback(`Punti Centro già riscattati per questo ciclo!`);
+                  setTimeout(() => setMediaFeedback(null), 2500);
+                }
+              }}
+              className={`flex items-center gap-1 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg text-[10px] sm:text-xs uppercase tracking-wider font-bold transition-all border ${
+                claimedCenterPoints
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black border-yellow-300 hover:scale-105 shadow-md'
+              }`}
+              title="Attività Centro Commerciale Meta-TV (Configurata da Admin)"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span className="hidden xl:inline">Centro 3D</span>
+              {!claimedCenterPoints && (
+                <span className="px-1 py-0.2 text-[9px] bg-black text-yellow-300 font-extrabold rounded-full">
+                  +{pointsRules?.centerCustomPoints || 80}
+                </span>
+              )}
+            </button>
+
+            {mediaFeedback && (
+              <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] bg-yellow-500 text-black border-2 border-amber-300 px-4 py-2 rounded-2xl font-black text-xs shadow-2xl animate-bounce flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-black" />
+                <span>{mediaFeedback}</span>
+              </div>
+            )}
+
             <button
               onClick={toggleFullscreen}
               className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-[10px] sm:text-xs uppercase tracking-wider font-semibold shadow-md transition-all border ${
@@ -316,12 +410,39 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
             <button
               onClick={onOpenGamification}
-              className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r from-zinc-900 to-black border border-amber-500/30 hover:border-amber-400 text-amber-300 rounded-lg text-[10px] sm:text-xs uppercase tracking-wider font-semibold shadow-md transition-all"
-              title="Livelli & Premi Gamification"
+              className="flex items-center gap-1.5 px-2 py-1.5 sm:px-3 sm:py-2 bg-gradient-to-r from-amber-950/80 via-zinc-900 to-black border border-amber-500/40 hover:border-amber-400 text-amber-300 rounded-lg text-[10px] sm:text-xs uppercase tracking-wider font-semibold shadow-md transition-all hover:scale-105"
+              title="Area Cliente, Saldo Punti Bonus-Power & Coupon"
             >
-              <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-yellow-400" />
-              <span className="hidden lg:inline">Premi VIP</span>
+              <Award className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="hidden lg:inline font-bold">Area Cliente</span>
+              <span className="px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 text-[10px] font-black border border-yellow-500/30">
+                {userCoins} PTS
+              </span>
             </button>
+
+            {onOpenAuth && (
+              <button
+                onClick={onOpenAuth}
+                className={`flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-[10px] sm:text-xs uppercase tracking-wider font-bold transition-all border ${
+                  currentUser?.isLoggedIn
+                    ? 'bg-yellow-500/10 border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/20'
+                    : 'bg-white/5 border-white/10 text-white/80 hover:text-white hover:bg-white/10'
+                }`}
+                title={currentUser?.isLoggedIn ? `Account: ${currentUser.username}` : 'Accedi o Registrati (Username, Email)'}
+              >
+                {currentUser?.isLoggedIn ? (
+                  <>
+                    <UserCheck className="w-3.5 h-3.5 text-yellow-400" />
+                    <span className="hidden xl:inline font-extrabold">{currentUser.username}</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="w-3.5 h-3.5 text-yellow-400" />
+                    <span className="hidden sm:inline">Accedi VIP</span>
+                  </>
+                )}
+              </button>
+            )}
 
             <button
               onClick={onToggleChatbot}
@@ -337,7 +458,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
       {/* Category Sub-Corridor Floating Header Breadcrumb - ONLY in normal mode */}
       {!isFullscreen && currentMode === 'corridor' && selectedPavilion && (
-        <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 bg-black/90 backdrop-blur-xl px-3 sm:px-5 py-2 rounded-full border border-yellow-500/60 shadow-[0_0_35px_rgba(255,215,0,0.4)] max-w-[95vw] overflow-x-auto whitespace-nowrap animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 bg-black/90 backdrop-blur-xl px-3 sm:px-5 py-2 rounded-full border border-yellow-500/60 shadow-[0_0_35px_rgba(255,215,0,0.4)] max-w-[95vw] overflow-x-auto whitespace-nowrap animate-in fade-in slide-in-from-top-4 duration-300">
           <button
             onClick={() => onSelectPavilion(null)}
             className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold rounded-full text-[11px] sm:text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer shrink-0"
@@ -379,7 +500,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
       {!isFullscreen && currentMode === 'corridor' && (
         <>
           {/* Top Control Bar Below Header */}
-          <div className="absolute top-16 sm:top-20 left-2 sm:left-6 z-20 flex items-center gap-2 sm:gap-3 bg-black/85 backdrop-blur-md p-1.5 sm:p-2 rounded-xl border border-white/10 shadow-2xl max-w-[calc(100vw-1rem)] overflow-x-auto whitespace-nowrap">
+          <div className="absolute top-20 sm:top-24 left-2 sm:left-6 z-20 flex items-center gap-2 sm:gap-3 bg-black/85 backdrop-blur-md p-1.5 sm:p-2 rounded-xl border border-white/10 shadow-2xl max-w-[calc(100vw-1rem)] overflow-x-auto whitespace-nowrap">
             {/* Walk Speed */}
             <div className="flex items-center gap-1.5 px-1.5 text-xs text-yellow-400 font-medium shrink-0">
               <FastForward className="w-3.5 h-3.5 text-yellow-400" />
