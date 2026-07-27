@@ -1812,7 +1812,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
 
         // Check double tap gesture on mobile (<300ms between taps)
         if (now - lastTouchTimeRef.current < 300 && moveDist < 25) {
-          playerYawRef.current += Math.PI; // 180° turn on double-tap
+          playerYawRef.current += Math.PI / 2; // 90° turn on double-tap
           if (autoWalkDirRef.current) {
             autoWalkDirRef.current = null;
             setAutoWalkActiveState(null);
