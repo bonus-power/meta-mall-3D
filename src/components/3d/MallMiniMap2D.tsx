@@ -47,7 +47,7 @@ export const MallMiniMap2D: React.FC<MallMiniMap2DProps> = ({
   companies = [],
   onOpenExpoModal,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [isFullscreenMap, setIsFullscreenMap] = useState<boolean>(false);
   const [hoveredPavId, setHoveredPavId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');

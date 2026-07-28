@@ -276,7 +276,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
   const avatarGenderRef = useRef<'male' | 'female'>(avatarGender);
   avatarGenderRef.current = avatarGender;
 
-  const [cameraViewMode, setCameraViewMode] = useState<'3rd_person' | '1st_person'>('3rd_person');
+  const [cameraViewMode, setCameraViewMode] = useState<'3rd_person' | '1st_person'>('1st_person');
   const cameraViewModeRef = useRef<'3rd_person' | '1st_person'>(cameraViewMode);
   cameraViewModeRef.current = cameraViewMode;
 
@@ -2199,14 +2199,11 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           av.rightArm.rotation.x *= 0.85;
         }
 
-        if (cameraViewModeRef.current === '3rd_person') {
-          av.group.visible = true;
-        } else {
-          av.group.visible = false;
-        }
+        // Keep 3D avatar hidden for maximum performance and fast direct navigation
+        av.group.visible = false;
       }
 
-      // Position Camera
+      // Position Camera in Direct First Person View
       if (cameraViewModeRef.current === '3rd_person') {
         const camDist = 4.0;
         const fx = -Math.sin(playerYawRef.current);
@@ -2307,74 +2304,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     <div className="fixed inset-0 w-screen h-screen overflow-hidden select-none bg-[#0a0c16]">
       {/* 3D Canvas */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing" />
-
-      {/* Avatar & Camera Mode Selector Panel (Hidden in Fullscreen Mode for max immersion) */}
-      {!isFullscreen && (
-        <div className="absolute top-14 sm:top-20 left-2 sm:left-4 z-40 flex flex-col gap-2">
-          <div className="bg-slate-950/85 backdrop-blur-md p-1.5 sm:p-3 rounded-xl sm:rounded-2xl border border-amber-500/40 shadow-2xl flex flex-col gap-1.5 sm:gap-2 text-xs w-36 sm:w-52">
-            <div className="flex items-center justify-between border-b border-amber-500/20 pb-1 sm:pb-1.5">
-              <span className="text-[9px] sm:text-[10px] font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                👤 Avatar 3D
-              </span>
-              <span className="text-[8px] sm:text-[9px] bg-amber-500/20 text-amber-300 px-1 sm:px-1.5 py-0.5 rounded font-mono font-bold">
-                Meta-TV
-              </span>
-            </div>
-
-            {/* Gender Selection */}
-            <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-white/10">
-              <button
-                onClick={() => setAvatarGender('male')}
-                className={`flex-1 py-0.5 sm:py-1 px-1 sm:px-2 rounded-md sm:rounded-lg font-bold flex items-center justify-center gap-0.5 sm:gap-1 transition-all text-[10px] sm:text-xs ${
-                  avatarGender === 'male'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-md scale-[1.02]'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span>👨</span> Uomo
-              </button>
-              <button
-                onClick={() => setAvatarGender('female')}
-                className={`flex-1 py-0.5 sm:py-1 px-1 sm:px-2 rounded-md sm:rounded-lg font-bold flex items-center justify-center gap-0.5 sm:gap-1 transition-all text-[10px] sm:text-xs ${
-                  avatarGender === 'female'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-md scale-[1.02]'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span>👩</span> Donna
-              </button>
-            </div>
-
-            {/* Camera View Mode */}
-            <div className="flex items-center gap-1 bg-zinc-900/90 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-white/10">
-              <button
-                onClick={() => setCameraViewMode('3rd_person')}
-                className={`flex-1 py-0.5 sm:py-1 px-1 sm:px-1.5 rounded-md sm:rounded-lg text-[9px] sm:text-[11px] font-semibold flex items-center justify-center gap-0.5 sm:gap-1 transition-all ${
-                  cameraViewMode === '3rd_person'
-                    ? 'bg-amber-400/25 text-amber-300 border border-amber-400/50 shadow-sm'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                🎥 3ª Pers.
-              </button>
-              <button
-                onClick={() => {
-                  setCameraViewMode('1st_person');
-                  playerPosRef.current.z = 0;
-                  playerPitchRef.current = 0;
-                }}
-                className={`flex-1 py-0.5 sm:py-1 px-1 sm:px-1.5 rounded-md sm:rounded-lg text-[9px] sm:text-[11px] font-semibold flex items-center justify-center gap-0.5 sm:gap-1 transition-all ${
-                  cameraViewMode === '1st_person'
-                    ? 'bg-amber-400/25 text-amber-300 border border-amber-400/50 shadow-sm'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                👁️ 1ª Pers.
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Recenter Button (Shown in normal mode; in fullscreen it is part of the top HUD bar) */}
       {!isFullscreen && (

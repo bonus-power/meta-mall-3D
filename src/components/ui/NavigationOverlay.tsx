@@ -24,6 +24,7 @@ import {
   Volume2,
   VolumeX,
   Radio,
+  ChevronDown,
 } from 'lucide-react';
 import { PointsRuleConfig } from '../../types';
 
@@ -242,78 +243,39 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
             </div>
           </div>
 
-          {/* View Mode Switcher Buttons */}
-          <nav className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 backdrop-blur-md overflow-x-auto max-w-2xl no-scrollbar">
-            <button
-              onClick={() => onModeChange('corridor')}
-              className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs tracking-wider uppercase transition-all whitespace-nowrap ${
-                currentMode === 'corridor'
-                  ? 'bg-yellow-500 text-black font-bold shadow-[0_0_12px_rgba(212,175,55,0.35)]'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
+          {/* View Mode Dropdown Menu */}
+          <div className="relative flex items-center">
+            <select
+              value={currentMode}
+              onChange={(e) => onModeChange(e.target.value as NavMode)}
+              className="bg-slate-900/90 text-yellow-400 font-extrabold text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border-2 border-yellow-500/60 shadow-[0_0_15px_rgba(255,215,0,0.25)] focus:outline-none focus:border-yellow-400 cursor-pointer appearance-none pr-8 tracking-wider uppercase transition-all hover:bg-slate-800"
+              title="Seleziona la modalità di navigazione"
             >
-              <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>Corridoi</span>
-            </button>
-
-            <button
-              onClick={() => onModeChange('globe')}
-              className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs tracking-wider uppercase transition-all whitespace-nowrap ${
-                currentMode === 'globe'
-                  ? 'bg-yellow-500 text-black font-bold shadow-[0_0_12px_rgba(212,175,55,0.35)]'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span className="hidden xs:inline">Mappa Globale</span>
-              <span className="xs:hidden">Globale</span>
-            </button>
-
-            <button
-              onClick={() => onModeChange('panorama')}
-              className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs tracking-wider uppercase transition-all whitespace-nowrap ${
-                currentMode === 'panorama'
-                  ? 'bg-yellow-500 text-black font-bold shadow-[0_0_12px_rgba(212,175,55,0.35)]'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <ImageIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>360°</span>
-            </button>
-
-            <button
-              onClick={() => onModeChange('live-events')}
-              className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs tracking-wider uppercase transition-all whitespace-nowrap ${
-                currentMode === 'live-events'
-                  ? 'bg-yellow-500 text-black font-bold shadow-[0_0_12px_rgba(212,175,55,0.35)]'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Tv className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-400" />
-              <span>Live</span>
-            </button>
-
-            {/* Business & Admin indicators shown only when accessing those modes via dedicated URL */}
-            {currentMode === 'business' && (
-              <button
-                onClick={() => onModeChange('business')}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs tracking-wider uppercase bg-amber-500 text-black font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.4)] whitespace-nowrap"
-              >
-                <Store className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Area Aziende</span>
-              </button>
-            )}
-
-            {currentMode === 'admin' && (
-              <button
-                onClick={() => onModeChange('admin')}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs tracking-wider uppercase bg-red-600 text-white font-extrabold shadow-[0_0_12px_rgba(220,38,38,0.4)] whitespace-nowrap"
-              >
-                <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                <span>Area Admin</span>
-              </button>
-            )}
-          </nav>
+              <option value="corridor" className="bg-slate-900 text-yellow-400 font-bold">
+                📍 Corridoi 3D (Galleria)
+              </option>
+              <option value="globe" className="bg-slate-900 text-yellow-400 font-bold">
+                🌍 Mappa Globale 3D
+              </option>
+              <option value="panorama" className="bg-slate-900 text-yellow-400 font-bold">
+                🖼️ Panorami 360°
+              </option>
+              <option value="live-events" className="bg-slate-900 text-yellow-400 font-bold">
+                📺 Eventi Live & TV
+              </option>
+              {currentMode === 'business' && (
+                <option value="business" className="bg-slate-900 text-amber-400 font-bold">
+                  🏢 Area Aziende
+                </option>
+              )}
+              {currentMode === 'admin' && (
+                <option value="admin" className="bg-slate-900 text-red-400 font-bold">
+                  🛡️ Area Admin
+                </option>
+              )}
+            </select>
+            <ChevronDown className="w-4 h-4 text-yellow-400 absolute right-2.5 pointer-events-none" />
+          </div>
 
           {/* Right Tools (Music Radio, Center Task, Teleport, VR, Fullscreen, Gamification, Chatbot) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -458,7 +420,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
       {/* Category Sub-Corridor Floating Header Breadcrumb - ONLY in normal mode */}
       {!isFullscreen && currentMode === 'corridor' && selectedPavilion && (
-        <div className="absolute top-20 sm:top-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 bg-black/90 backdrop-blur-xl px-3 sm:px-5 py-2 rounded-full border border-yellow-500/60 shadow-[0_0_35px_rgba(255,215,0,0.4)] max-w-[95vw] overflow-x-auto whitespace-nowrap animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3 bg-black/90 backdrop-blur-xl px-3 sm:px-5 py-2 rounded-full border border-yellow-500/60 shadow-[0_0_35px_rgba(255,215,0,0.4)] max-w-[95vw] overflow-x-auto whitespace-nowrap animate-in fade-in slide-in-from-top-4 duration-300">
           <button
             onClick={() => onSelectPavilion(null)}
             className="flex items-center gap-1.5 px-3 py-1 sm:px-4 sm:py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold rounded-full text-[11px] sm:text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-105 active:scale-95 cursor-pointer shrink-0"
@@ -500,7 +462,19 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
       {!isFullscreen && currentMode === 'corridor' && (
         <>
           {/* Top Control Bar Below Header */}
-          <div className="absolute top-20 sm:top-24 left-2 sm:left-6 z-20 flex items-center gap-2 sm:gap-3 bg-black/85 backdrop-blur-md p-1.5 sm:p-2 rounded-xl border border-white/10 shadow-2xl max-w-[calc(100vw-1rem)] overflow-x-auto whitespace-nowrap">
+          <div className="absolute top-16 sm:top-20 left-2 sm:left-6 z-20 flex items-center gap-2 sm:gap-3 bg-black/85 backdrop-blur-md p-1.5 sm:p-2 rounded-xl border border-white/10 shadow-2xl max-w-[calc(100vw-1rem)] overflow-x-auto whitespace-nowrap">
+            {/* View Mode Indicator */}
+            <div className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 shrink-0">
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-1">
+                ⚡ Vista Diretta 1ª Persona
+              </span>
+              <span className="text-[8px] sm:text-[9px] bg-green-500/20 text-green-300 border border-green-500/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                FLUIDA
+              </span>
+            </div>
+
+            <div className="h-4 w-px bg-white/10 shrink-0" />
+
             {/* Walk Speed */}
             <div className="flex items-center gap-1.5 px-1.5 text-xs text-yellow-400 font-medium shrink-0">
               <FastForward className="w-3.5 h-3.5 text-yellow-400" />
