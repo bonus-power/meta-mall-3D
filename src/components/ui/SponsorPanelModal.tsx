@@ -351,7 +351,7 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     <button
                       disabled={hasClaimedVideoPoints}
                       onClick={() => {
-                        const pts = pointsRules.watchVideoPoints || 60;
+                        const pts = panel.pointsReward ? Math.round(panel.pointsReward * 1.5) : (pointsRules.watchVideoPoints || 60);
                         if (onEarnPoints) onEarnPoints(pts, `Visione Video: ${panel.title}`);
                         setHasClaimedVideoPoints(true);
                         setClaimFeedback(`+${pts} PTS Guadagnati per la visione video!`);
@@ -366,13 +366,13 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                       <Zap className="w-4 h-4 text-yellow-300 fill-yellow-300" />
                       {hasClaimedVideoPoints
                         ? 'Punti Video Riscattai ✓'
-                        : `Riscatta +${pointsRules.watchVideoPoints || 60} PTS Video`}
+                        : `Riscatta +${panel.pointsReward ? Math.round(panel.pointsReward * 1.5) : (pointsRules.watchVideoPoints || 60)} PTS Video`}
                     </button>
                   ) : (
                     <button
                       disabled={hasClaimedPosterPoints}
                       onClick={() => {
-                        const pts = pointsRules.viewPosterPoints || 30;
+                        const pts = panel.pointsReward || pointsRules.viewPosterPoints || 40;
                         if (onEarnPoints) onEarnPoints(pts, `Visione Manifesto: ${panel.title}`);
                         setHasClaimedPosterPoints(true);
                         setClaimFeedback(`+${pts} PTS Guadagnati per la visione manifesto!`);
@@ -387,7 +387,7 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                       <Sparkles className="w-4 h-4 text-black" />
                       {hasClaimedPosterPoints
                         ? 'Punti Manifesto Riscattai ✓'
-                        : `Riscatta +${pointsRules.viewPosterPoints || 30} PTS Manifesto`}
+                        : `Riscatta +${panel.pointsReward || pointsRules.viewPosterPoints || 40} PTS Manifesto`}
                     </button>
                   )}
 
@@ -679,6 +679,22 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     <option value="available">Disponibile per Affitto</option>
                     <option value="pending">In Attesa Approvazione</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-yellow-300 mb-1 font-bold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                    Premio Punti Visione (PTS)
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="1000"
+                    step="5"
+                    value={editForm.pointsReward ?? 50}
+                    onChange={(e) => setEditForm({ ...editForm, pointsReward: parseInt(e.target.value, 10) || 50 })}
+                    className="w-full bg-black/50 border border-yellow-500/50 rounded-xl px-3 py-2 text-sm text-yellow-300 font-extrabold"
+                  />
                 </div>
 
                 <div>

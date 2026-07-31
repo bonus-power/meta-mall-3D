@@ -82,7 +82,7 @@ export const VirtualTourMiniMap: React.FC<VirtualTourMiniMapProps> = ({
           {/* Header */}
           <div className="px-3.5 py-2.5 bg-black/90 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Compass className="w-4 h-4 text-yellow-400 animate-pulse" />
+              <Compass className="w-4 h-4 text-yellow-400" />
               <span className="text-[11px] font-extrabold text-white uppercase tracking-wider">
                 Planimetria 2D, Stanze & Corridoi
               </span>
@@ -243,13 +243,6 @@ export const VirtualTourMiniMap: React.FC<VirtualTourMiniMapProps> = ({
                     onMouseLeave={() => setHoveredSceneId(null)}
                     className="group relative flex items-center justify-center transition-all"
                   >
-                    {/* Glowing outer pulse for active room or corridor */}
-                    {isActive && (
-                      <span className={`absolute -inset-2 rounded-full animate-ping pointer-events-none ${
-                        isCorridor ? 'bg-amber-400/60' : 'bg-yellow-400/50'
-                      }`} />
-                    )}
-
                     {/* Pin Circle / Badge */}
                     <span
                       className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-[10px] border shadow-lg transition-all ${
@@ -292,7 +285,7 @@ export const VirtualTourMiniMap: React.FC<VirtualTourMiniMapProps> = ({
           <div className="px-3 py-2 bg-black/90 border-t border-white/10 text-[10px] text-white/70 flex items-center justify-between">
             <div className="flex items-center gap-1.5 overflow-hidden">
               {activeScene.type === 'corridor' ? (
-                <Footprints className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                <Footprints className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               ) : (
                 <Eye className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
               )}

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Pavilion, Company, SubCategory } from '../../types';
-import { SUBCATEGORIES_BY_PAVILION, getSubcategoriesForPavilion } from '../../data/subcategoriesData';
+import { Pavilion, Company, CategoryId } from '../../types';
 import {
   X,
   Store,
@@ -17,26 +16,172 @@ import {
   ShoppingBag,
   Sparkles,
   ArrowUpRight,
-  DoorOpen,
-  Layers,
 } from 'lucide-react';
 
 interface PavilionExpoModalProps {
   pavilion: Pavilion | null;
   pavilions: Pavilion[];
   companies: Company[];
-  subcategoriesMap?: Record<string, SubCategory[]>;
   onClose: () => void;
   onSelectCompany: (company: Company) => void;
   onSelectPavilion: (pavilion: Pavilion) => void;
   onOpenBusinessDashboard?: () => void;
 }
 
+// Map categories to realistic trade fair subcategories
+const SUBCATEGORIES_MAP: Record<CategoryId, string[]> = {
+  shopping: [
+    'Tutte',
+    'Abbigliamento Uomo & Donna',
+    'Calzature & Scarpe',
+    'Gioielli & Orologi',
+    'Accessori & Borse',
+    'Sport & Outdoor',
+    'Vintage & Lusso',
+  ],
+  food: [
+    'Tutte',
+    'Ristorazione Stellata & Gourmet',
+    'Pizzerie & Osterie',
+    'Pasticcerie & Gelaterie',
+    'Enoteca & Vini D.O.C.',
+    'Prodotti Tipici & Bio',
+  ],
+  beauty: [
+    'Tutte',
+    'Spa Olistica & Massaggi',
+    'Dermocosmesi & Bio',
+    'Parrucchieri & Barber',
+    'Fitness, Yoga & Gym',
+    'Integratori & Benessere',
+  ],
+  tech: [
+    'Tutte',
+    'Elettronica & Domotica AI',
+    'Smartphone & Tablet',
+    'Visori VR, AR & Ologrammi',
+    'PC Gaming & Hardware',
+    'Riparazioni & Service',
+  ],
+  media: [
+    'Tutte',
+    'Produzioni Broadcast & Live TV',
+    'Streaming & Cinema',
+    'Musica, DJ & Concerti',
+    'Radio, Podcast & Stampa',
+  ],
+  auto: [
+    'Tutte',
+    'Supercar Elettriche & Hypercar',
+    'Concessionari Auto',
+    'Moto & Scooter',
+    'E-Bike & Monopattini',
+    'Officine & Detailing',
+  ],
+  casa: [
+    'Tutte',
+    'Mobili & Design D’Interni',
+    'Cucine Moderne & Bagni',
+    'Illuminazione & Domotica',
+    'Giardino, Bricolage & BBQ',
+  ],
+  servizi: [
+    'Tutte',
+    'Consulenze Legali & Fiscali',
+    'Architettura & Ingegneria',
+    'Medici & Centri Specialistici',
+    'Veterinari & Consulenti',
+  ],
+  viaggi: [
+    'Tutte',
+    'Resort di Lusso & Hotel',
+    'Agenzie Viaggio & Tour 3D',
+    'Crociere & Yacht Charter',
+    'B&B & Esperienze Locali',
+  ],
+  formazione: [
+    'Tutte',
+    'Università, Master & Academy',
+    'Corsi Online & E-Learning',
+    'Scuole di Lingue',
+    'Accademie Musica & Arte',
+  ],
+  artigianato: [
+    'Tutte',
+    'Sartoria & Moda Artigianale',
+    'Falegnameria & Arredo Su Misura',
+    'Laboratori Ceramica & Vetro',
+    'Stampa 3D & Maker Space',
+  ],
+  animali: [
+    'Tutte',
+    'Negozi & Mangimi Premium',
+    'Cliniche Veterinarie',
+    'Toelettatura & Spa Pet',
+    'Accessori & Addestramento',
+  ],
+  eventi: [
+    'Tutte',
+    'Wedding Planner & Banqueting',
+    'Location & Dimore Storiche',
+    'DJ, Band & Live Performance',
+    'Service Audio & Luci 3D',
+  ],
+  lifestyle: [
+    'Tutte',
+    'Giochi da Tavolo & Comics',
+    'Modellismo & Collezionismo',
+    'Libri, Fumetti & Manga',
+    'Attrezzatura Outdoor',
+  ],
+  finanza: [
+    'Tutte',
+    'Fintech, Banche & Credito',
+    'Assicurazioni & Tutela',
+    'Crypto Hub & Blockchain',
+    'Coworking & Incubatori',
+  ],
+  benessere: [
+    'Tutte',
+    'Mindfulness & Meditazione',
+    'Coaching Olistico',
+    'Naturopatia & Fitoterapia',
+    'Terapie Naturali',
+  ],
+  sicurezza: [
+    'Tutte',
+    'Sistemi Allarme & Domotica',
+    'Videosorveglianza TVCC',
+    'Cybersecurity & Protezione',
+    'Casaforti & Porte Blindate',
+  ],
+  pulizia: [
+    'Tutte',
+    'Imprese di Pulizia Industriale',
+    'Idraulica & Elettricisti',
+    'Sanificazione & Clima',
+    'Manutenzione Giardini',
+  ],
+  logistica: [
+    'Tutte',
+    'Corrieri Espresso & Delivery',
+    'Magazzini & Storage',
+    'Traslochi Nazionali & Estero',
+    'Logistica E-Commerce',
+  ],
+  scienza: [
+    'Tutte',
+    'Robotica & Droni',
+    'Intelligenza Artificiale',
+    'Laboratori Ricerca & Biotech',
+    'Energie Rinnovabili',
+  ],
+};
+
 export const PavilionExpoModal: React.FC<PavilionExpoModalProps> = ({
   pavilion,
   pavilions,
   companies,
-  subcategoriesMap,
   onClose,
   onSelectCompany,
   onSelectPavilion,
@@ -52,13 +197,8 @@ export const PavilionExpoModal: React.FC<PavilionExpoModalProps> = ({
   const prevPavilion = pavilions[(currentIndex - 1 + pavilions.length) % pavilions.length];
   const nextPavilion = pavilions[(currentIndex + 1) % pavilions.length];
 
-  // Get rich subcategories for current pavilion
-  const currentSubCategoryObjects: SubCategory[] =
-    (subcategoriesMap && subcategoriesMap[pavilion.id]) ||
-    SUBCATEGORIES_BY_PAVILION[pavilion.id] ||
-    getSubcategoriesForPavilion(pavilion, companies);
-
-  const subCategories = ['Tutte', ...currentSubCategoryObjects.map((s) => s.name)];
+  // Get subcategories list for current pavilion
+  const subCategories = SUBCATEGORIES_MAP[pavilion.id] || ['Tutte', 'Generale'];
 
   // Filter existing companies for this pavilion
   const pavilionCompanies = companies.filter((c) => c.categoryId === pavilion.id);
@@ -313,79 +453,8 @@ export const PavilionExpoModal: React.FC<PavilionExpoModalProps> = ({
           </div>
         </div>
 
-        {/* Trade Fair Stands & Subcategory Doors Grid */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-8">
-          {/* Subcategory Banner Doors Section (when showing 'Tutte' or browsing) */}
-          {selectedSubCat === 'Tutte' && currentSubCategoryObjects.length > 0 && !searchTerm && (
-            <div className="space-y-3 bg-[#0a0a0d] p-5 rounded-3xl border border-yellow-500/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <DoorOpen className="w-5 h-5 text-yellow-400" />
-                  <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">
-                    Sottocategorie & Porte d'Ingresso <span className="text-yellow-400">({currentSubCategoryObjects.length})</span>
-                  </h3>
-                </div>
-                <span className="text-[11px] text-white/50 uppercase tracking-wider">
-                  Clicca su una porta o banner per entrare
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-1">
-                {currentSubCategoryObjects.map((subItem) => {
-                  const companyCount = pavilionCompanies.filter(
-                    (c) => c.subCategory?.toLowerCase() === subItem.name.toLowerCase()
-                  ).length;
-
-                  return (
-                    <div
-                      key={subItem.id}
-                      onClick={() => setSelectedSubCat(subItem.name)}
-                      className="group relative bg-black border border-white/15 hover:border-yellow-500/80 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-[0_0_25px_rgba(212,175,55,0.25)] flex flex-col justify-between"
-                    >
-                      {/* Banner Image */}
-                      <div className="relative h-28 w-full overflow-hidden">
-                        <img
-                          src={subItem.bannerImage}
-                          alt={subItem.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                        <span className="absolute top-2 right-2 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-bold text-yellow-400 border border-yellow-500/30">
-                          {companyCount} {companyCount === 1 ? 'Azienda' : 'Aziende'}
-                        </span>
-                      </div>
-
-                      {/* Details & Button */}
-                      <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
-                        <div>
-                          <h4 className="text-xs font-extrabold text-white group-hover:text-yellow-400 transition-colors uppercase tracking-wider line-clamp-1">
-                            {subItem.name}
-                          </h4>
-                          <p className="text-[11px] text-yellow-300 font-medium line-clamp-1 mt-0.5">
-                            {subItem.tagline}
-                          </p>
-                          <p className="text-[10px] text-white/50 line-clamp-2 mt-1">
-                            {subItem.description}
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedSubCat(subItem.name);
-                          }}
-                          className="w-full py-1.5 mt-2 bg-yellow-500/20 group-hover:bg-yellow-500 text-yellow-300 group-hover:text-black font-extrabold text-[11px] uppercase tracking-wider rounded-xl border border-yellow-500/40 flex items-center justify-center gap-1.5 transition-all"
-                        >
-                          <DoorOpen className="w-3.5 h-3.5" />
-                          <span>Entra nella Sottocategoria</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+        {/* Trade Fair Stands Grid (Stand Fieristici Espositori) */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
           {filteredStands.length === 0 ? (
             <div className="text-center py-12 space-y-3 bg-black/40 rounded-3xl border border-white/10 p-8">
               <Building2 className="w-12 h-12 text-yellow-500/50 mx-auto" />
@@ -412,7 +481,7 @@ export const PavilionExpoModal: React.FC<PavilionExpoModalProps> = ({
               {filteredStands.map((stand) => (
                 <div
                   key={stand.id}
-                  className="bg-[#080808] border border-white/15 hover:border-yellow-500/60 rounded-3xl overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] flex flex-col group relative"
+                  className="bg-[#080808] border border-white/15 hover:border-yellow-500/60 rounded-3xl overflow-hidden transition-all hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] flex flex-col justify-between group relative"
                 >
                   {/* Stand Header Image */}
                   <div className="relative h-36 w-full overflow-hidden bg-black">

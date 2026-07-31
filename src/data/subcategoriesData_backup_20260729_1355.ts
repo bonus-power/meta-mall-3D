@@ -138,17 +138,6 @@ export const SUBCATEGORIES_BY_PAVILION: Record<string, SubCategory[]> = {
       description: 'Dolci artigianali, gelato naturale e cioccolateria di alta scuola.',
       tagline: 'Dolci Creazioni & Gelato Artigianale',
     },
-    {
-      id: 'sub-food-6',
-      name: 'Prodotti Km Zero',
-      pavilionId: 'food',
-      color: '#FF7F50',
-      glowColor: 'rgba(255, 127, 80, 0.8)',
-      iconName: 'Sprout',
-      bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-      description: 'Mangia Sano — Frutta, verdura biologica, formaggi e prodotti a filiera corta.',
-      tagline: 'Nuova Sottocategoria 3D',
-    },
   ],
 
   beauty: [

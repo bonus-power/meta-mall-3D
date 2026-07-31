@@ -1,15 +1,3 @@
-export interface SubCategory {
-  id: string;
-  name: string;
-  pavilionId: string;
-  color: string;
-  glowColor: string;
-  iconName: string;
-  bannerImage: string;
-  description: string;
-  tagline: string;
-}
-
 export interface SponsorPanel {
   id: string;
   title: string;

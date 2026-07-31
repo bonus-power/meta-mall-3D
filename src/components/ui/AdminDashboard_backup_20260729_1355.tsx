@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Company, Pavilion, Panorama360, SponsorPanel, AdminCollaborator, SubCategory, PointsRuleConfig } from '../../types';
-import { SUBCATEGORIES_BY_PAVILION } from '../../data/subcategoriesData';
+import { Company, Pavilion, Panorama360, SponsorPanel, AdminCollaborator } from '../../types';
 import {
   Shield,
   Plus,
@@ -24,10 +23,9 @@ import {
   Sparkles,
   ExternalLink,
   Eye,
-  DoorOpen,
-  Tag,
-  FolderPlus,
 } from 'lucide-react';
+
+import { PointsRuleConfig } from '../../types';
 
 interface AdminDashboardProps {
   companies: Company[];
@@ -36,13 +34,11 @@ interface AdminDashboardProps {
   sponsorPanels?: SponsorPanel[];
   collaborators?: AdminCollaborator[];
   pointsRules?: PointsRuleConfig;
-  subcategoriesMap?: Record<string, SubCategory[]>;
   onUpdateCompanies: (companies: Company[]) => void;
   onUpdatePanoramas: (panoramas: Panorama360[]) => void;
   onUpdateSponsorPanels?: (panels: SponsorPanel[]) => void;
   onUpdateCollaborators?: (collaborators: AdminCollaborator[]) => void;
   onUpdatePointsRules?: (rules: PointsRuleConfig) => void;
-  onUpdateSubcategoriesMap?: (map: Record<string, SubCategory[]>) => void;
   onCreditUserPoints?: (email: string, points: number) => void;
 }
 
@@ -63,16 +59,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     centerCustomPoints: 80,
     centerCustomLabel: 'Interazione Centro Galleria 3D',
   },
-  subcategoriesMap = SUBCATEGORIES_BY_PAVILION,
   onUpdateCompanies,
   onUpdatePanoramas,
   onUpdateSponsorPanels,
   onUpdateCollaborators,
   onUpdatePointsRules,
-  onUpdateSubcategoriesMap,
   onCreditUserPoints,
 }) => {
-  const [activeTab, setActiveTab] = useState<'companies' | 'subcategories' | 'pavilions' | 'panoramas' | 'sponsors' | 'gamification' | 'embed'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'pavilions' | 'panoramas' | 'sponsors' | 'gamification' | 'embed'>('companies');
   const [localRules, setLocalRules] = useState<PointsRuleConfig>(pointsRules);
   const [creditEmail, setCreditEmail] = useState('');
   const [creditAmount, setCreditAmount] = useState(100);
@@ -80,88 +74,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-
-  // Subcategory management state
-  const [selectedSubcatPavilionId, setSelectedSubcatPavilionId] = useState<string>('shopping');
-  const [editingSubCategory, setEditingSubCategory] = useState<SubCategory | null>(null);
-  const [showAddSubcatModal, setShowAddSubcatModal] = useState<boolean>(false);
-  const [newSubCat, setNewSubCat] = useState<Partial<SubCategory>>({
-    name: '',
-    pavilionId: 'shopping',
-    color: '#FFD700',
-    glowColor: 'rgba(255, 215, 0, 0.8)',
-    iconName: 'DoorOpen',
-    bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-    description: '',
-    tagline: 'Nuova Sottocategoria 3D',
-  });
-
-  // Subcategory management handlers
-  const handleCreateSubCategory = () => {
-    if (!newSubCat.name) return;
-    const pavilionId = newSubCat.pavilionId || selectedSubcatPavilionId;
-    const newSubItem: SubCategory = {
-      id: `sub-${pavilionId}-${Date.now()}`,
-      name: newSubCat.name,
-      pavilionId: pavilionId,
-      color: newSubCat.color || '#FFD700',
-      glowColor: newSubCat.glowColor || 'rgba(255, 215, 0, 0.8)',
-      iconName: newSubCat.iconName || 'DoorOpen',
-      bannerImage: newSubCat.bannerImage || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-      description: newSubCat.description || '',
-      tagline: newSubCat.tagline || 'Sottocategoria 3D',
-    };
-
-    const currentList = subcategoriesMap[pavilionId] || [];
-    const updatedMap = {
-      ...subcategoriesMap,
-      [pavilionId]: [...currentList, newSubItem],
-    };
-
-    if (onUpdateSubcategoriesMap) {
-      onUpdateSubcategoriesMap(updatedMap);
-    }
-    setShowAddSubcatModal(false);
-    setNewSubCat({
-      name: '',
-      pavilionId: selectedSubcatPavilionId,
-      color: '#FFD700',
-      glowColor: 'rgba(255, 215, 0, 0.8)',
-      iconName: 'DoorOpen',
-      bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-      description: '',
-      tagline: 'Nuova Sottocategoria 3D',
-    });
-  };
-
-  const handleSaveSubCategory = () => {
-    if (!editingSubCategory) return;
-    const pavilionId = editingSubCategory.pavilionId;
-    const currentList = subcategoriesMap[pavilionId] || [];
-    const updatedList = currentList.map((s) => (s.id === editingSubCategory.id ? editingSubCategory : s));
-    const updatedMap = {
-      ...subcategoriesMap,
-      [pavilionId]: updatedList,
-    };
-
-    if (onUpdateSubcategoriesMap) {
-      onUpdateSubcategoriesMap(updatedMap);
-    }
-    setEditingSubCategory(null);
-  };
-
-  const handleDeleteSubCategory = (subCatId: string, pavilionId: string) => {
-    const currentList = subcategoriesMap[pavilionId] || [];
-    const updatedList = currentList.filter((s) => s.id !== subCatId);
-    const updatedMap = {
-      ...subcategoriesMap,
-      [pavilionId]: updatedList,
-    };
-
-    if (onUpdateSubcategoriesMap) {
-      onUpdateSubcategoriesMap(updatedMap);
-    }
-  };
 
   // Panorama state
   const [editingPanorama, setEditingPanorama] = useState<Panorama360 | null>(null);
@@ -316,18 +228,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Building className="w-4 h-4" />
             <span>Gestione Aziende ({companies.length})</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('subcategories')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
-              activeTab === 'subcategories'
-                ? 'bg-yellow-500 text-black shadow-[0_0_12px_rgba(212,175,55,0.35)]'
-                : 'text-white/60 hover:text-white'
-            }`}
-          >
-            <DoorOpen className="w-4 h-4 text-yellow-400" />
-            <span>Sottocategorie & Banner Door 3D</span>
           </button>
 
           <button
@@ -600,161 +500,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Tab: Subcategories & 3D Banner Doors Management */}
-      {activeTab === 'subcategories' && (
-        <div className="space-y-6">
-          {/* Header & Pavilion Selector */}
-          <div className="bg-[#080808] p-5 rounded-3xl border border-white/10 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="text-yellow-500 font-extrabold text-sm uppercase tracking-wider flex items-center gap-2">
-                  <DoorOpen className="w-5 h-5 text-yellow-400" />
-                  Gestione Sottocategorie, Banner e Porte d'Ingresso 3D
-                </h3>
-                <p className="text-xs text-white/60 mt-1">
-                  Seleziona un padiglione per creare o gestire le sottocategorie. Ogni sottocategoria genera porte e banner cliccabili nel padiglione 3D dove le aziende vengono inserite.
-                </p>
-              </div>
-
-              <button
-                onClick={() => {
-                  setNewSubCat({
-                    name: '',
-                    pavilionId: selectedSubcatPavilionId,
-                    color: '#FFD700',
-                    glowColor: 'rgba(255, 215, 0, 0.8)',
-                    iconName: 'DoorOpen',
-                    bannerImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
-                    description: '',
-                    tagline: 'Nuova Sottocategoria 3D',
-                  });
-                  setShowAddSubcatModal(true);
-                }}
-                className="px-4 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.3)] flex items-center gap-2 shrink-0 transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Crea Nuova Sottocategoria</span>
-              </button>
-            </div>
-
-            {/* Pavilion selector pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1 scrollbar-thin scrollbar-thumb-yellow-500/30">
-              {pavilions.map((p) => {
-                const isSelected = selectedSubcatPavilionId === p.id;
-                const subCount = (subcategoriesMap[p.id] || []).length;
-
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedSubcatPavilionId(p.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-2 ${
-                      isSelected
-                        ? 'bg-yellow-500 text-black border-yellow-300 shadow-[0_0_15px_rgba(212,175,55,0.4)] font-extrabold'
-                        : 'bg-black/80 border-white/10 hover:border-yellow-500/50 text-white/70 hover:text-white'
-                    }`}
-                  >
-                    <span>{p.name}</span>
-                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isSelected ? 'bg-black/30 text-yellow-200' : 'bg-white/10 text-white/60'}`}>
-                      {subCount}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Subcategories Grid */}
-          {((subcategoriesMap[selectedSubcatPavilionId] || []).length === 0) ? (
-            <div className="text-center py-12 space-y-3 bg-[#080808] rounded-3xl border border-white/10 p-8">
-              <FolderPlus className="w-12 h-12 text-yellow-500/50 mx-auto" />
-              <h3 className="text-base font-bold text-white uppercase tracking-wider">
-                Nessuna Sottocategoria per questo Padiglione
-              </h3>
-              <p className="text-xs text-white/50 max-w-md mx-auto">
-                Clicca sul pulsante in alto per aggiungere la prima sottocategoria con il suo banner e porta d'ingresso.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {(subcategoriesMap[selectedSubcatPavilionId] || []).map((subItem) => {
-                const assignedCompanies = companies.filter(
-                  (c) => c.categoryId === selectedSubcatPavilionId && c.subCategory?.toLowerCase() === subItem.name.toLowerCase()
-                );
-
-                return (
-                  <div
-                    key={subItem.id}
-                    className="bg-[#080808] border border-white/10 hover:border-yellow-500/50 rounded-2xl overflow-hidden transition-all duration-300 flex flex-col justify-between group shadow-lg"
-                  >
-                    {/* Banner & Header */}
-                    <div className="relative h-32 w-full overflow-hidden bg-black">
-                      <img
-                        src={subItem.bannerImage}
-                        alt={subItem.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                      <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-yellow-400 border border-yellow-500/30 flex items-center gap-1.5">
-                        <DoorOpen className="w-3 h-3" />
-                        <span>Porta Cliccabile 3D</span>
-                      </div>
-                      <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-white border border-white/20">
-                        {assignedCompanies.length} Aziende
-                      </div>
-                    </div>
-
-                    {/* Content Body */}
-                    <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h4 className="text-sm font-extrabold text-white group-hover:text-yellow-400 transition-colors uppercase tracking-wider">
-                          {subItem.name}
-                        </h4>
-                        <p className="text-xs text-yellow-300 font-semibold mt-0.5">
-                          {subItem.tagline}
-                        </p>
-                        <p className="text-xs text-white/60 line-clamp-2 mt-1.5">
-                          {subItem.description || 'Nessuna descrizione specificata.'}
-                        </p>
-
-                        {/* Assigned Companies List */}
-                        {assignedCompanies.length > 0 && (
-                          <div className="mt-3 pt-2 border-t border-white/10">
-                            <span className="text-[10px] text-white/40 uppercase tracking-wider block mb-1">Aziende in questa Sottocategoria:</span>
-                            <div className="flex flex-wrap gap-1">
-                              {assignedCompanies.map((ac) => (
-                                <span key={ac.id} className="bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 px-2 py-0.5 rounded text-[10px] font-medium">
-                                  {ac.name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10 mt-3">
-                        <button
-                          onClick={() => setEditingSubCategory(subItem)}
-                          className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-yellow-400 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1 border border-white/10 transition-all"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" /> Modifica
-                        </button>
-                        <button
-                          onClick={() => handleDeleteSubCategory(subItem.id, subItem.pavilionId)}
-                          className="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-300 rounded-xl text-xs font-bold border border-red-500/30 transition-all flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Elimina
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 
@@ -1917,171 +1662,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Add Subcategory */}
-      {showAddSubcatModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-[#080808] border border-yellow-500/30 p-6 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.9)] space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <h3 className="text-white font-extrabold text-base tracking-wide uppercase flex items-center gap-2">
-                <DoorOpen className="w-5 h-5 text-yellow-400" />
-                Crea Nuova <span className="text-yellow-500">Sottocategoria 3D</span>
-              </h3>
-              <button onClick={() => setShowAddSubcatModal(false)} className="text-white/40 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Padiglione</label>
-                <select
-                  value={newSubCat.pavilionId || selectedSubcatPavilionId}
-                  onChange={(e) => setNewSubCat({ ...newSubCat, pavilionId: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                >
-                  {pavilions.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Nome Sottocategoria *</label>
-                <input
-                  type="text"
-                  placeholder="Es. Sartoria & Alta Moda"
-                  value={newSubCat.name || ''}
-                  onChange={(e) => setNewSubCat({ ...newSubCat, name: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Slogan / Tagline *</label>
-                <input
-                  type="text"
-                  placeholder="Es. Abiti Sartoriali & passerelle VIP 3D"
-                  value={newSubCat.tagline || ''}
-                  onChange={(e) => setNewSubCat({ ...newSubCat, tagline: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">URL Banner Immagine (Porta 3D) *</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={newSubCat.bannerImage || ''}
-                  onChange={(e) => setNewSubCat({ ...newSubCat, bannerImage: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Descrizione</label>
-                <textarea
-                  placeholder="Descrivi brevemente i prodotti, i servizi e le aziende in questa sottocategoria..."
-                  value={newSubCat.description || ''}
-                  onChange={(e) => setNewSubCat({ ...newSubCat, description: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 h-20"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-              <button
-                onClick={() => setShowAddSubcatModal(false)}
-                className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold"
-              >
-                Annulla
-              </button>
-              <button
-                onClick={handleCreateSubCategory}
-                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md"
-              >
-                <CheckCircle className="w-4 h-4" /> Crea Sottocategoria
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Edit Subcategory */}
-      {editingSubCategory && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-[#080808] border border-yellow-500/30 p-6 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.9)] space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <h3 className="text-white font-extrabold text-base tracking-wide uppercase flex items-center gap-2">
-                <Edit2 className="w-5 h-5 text-yellow-400" />
-                Modifica <span className="text-yellow-500">Sottocategoria 3D</span>
-              </h3>
-              <button onClick={() => setEditingSubCategory(null)} className="text-white/40 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Nome Sottocategoria</label>
-                <input
-                  type="text"
-                  value={editingSubCategory.name}
-                  onChange={(e) => setEditingSubCategory({ ...editingSubCategory, name: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Slogan / Tagline</label>
-                <input
-                  type="text"
-                  value={editingSubCategory.tagline}
-                  onChange={(e) => setEditingSubCategory({ ...editingSubCategory, tagline: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">URL Banner Immagine (Porta 3D)</label>
-                <input
-                  type="url"
-                  value={editingSubCategory.bannerImage}
-                  onChange={(e) => setEditingSubCategory({ ...editingSubCategory, bannerImage: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200"
-                />
-              </div>
-
-              <div>
-                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">Descrizione</label>
-                <textarea
-                  value={editingSubCategory.description}
-                  onChange={(e) => setEditingSubCategory({ ...editingSubCategory, description: e.target.value })}
-                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 h-20"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-              <button
-                onClick={() => setEditingSubCategory(null)}
-                className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold"
-              >
-                Annulla
-              </button>
-              <button
-                onClick={handleSaveSubCategory}
-                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md"
-              >
-                <Save className="w-4 h-4" /> Salva Modifiche
-              </button>
-            </div>
           </div>
         </div>
       )}

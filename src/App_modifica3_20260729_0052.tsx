@@ -11,7 +11,6 @@ import {
   SponsorPanel,
   AdminCollaborator,
   PointsRuleConfig,
-  SubCategory,
 } from './types';
 import {
   INITIAL_PAVILIONS,
@@ -22,7 +21,6 @@ import {
   INITIAL_SPONSOR_PANELS,
   INITIAL_ADMIN_COLLABORATORS,
 } from './data/initialData';
-import { SUBCATEGORIES_BY_PAVILION } from './data/subcategoriesData';
 
 // 3D Renderers
 import { MallCanvas3D } from './components/3d/MallCanvas3D';
@@ -98,28 +96,6 @@ export default function App() {
   const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
   const [sponsorPanels, setSponsorPanels] = useState<SponsorPanel[]>(INITIAL_SPONSOR_PANELS);
   const [collaborators, setCollaborators] = useState<AdminCollaborator[]>(INITIAL_ADMIN_COLLABORATORS);
-  const [subcategoriesMap, setSubcategoriesMap] = useState<Record<string, SubCategory[]>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('meta_tv_subcategories_map');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {
-          console.error('Error loading subcategories from localStorage', e);
-        }
-      }
-    }
-    return SUBCATEGORIES_BY_PAVILION;
-  });
-
-  // Sync subcategories to localStorage on changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('meta_tv_subcategories_map', JSON.stringify(subcategoriesMap));
-    } catch (e) {
-      console.error('Error saving subcategories to localStorage', e);
-    }
-  }, [subcategoriesMap]);
 
   // Selected state
   const [selectedPavilion, setSelectedPavilion] = useState<Pavilion | null>(null);
@@ -297,10 +273,6 @@ export default function App() {
     setNavMode(newMode);
     setSelectedPavilion(null);
     setSelectedCompany(null);
-    setSelectedSponsorPanel(null);
-    setPlayerXPosition(0);
-    setResetAvatarTrigger((prev) => prev + 1);
-    window.dispatchEvent(new CustomEvent('recenter-visuale'));
 
     // Update URL query parameter seamlessly
     if (typeof window !== 'undefined') {
@@ -363,7 +335,6 @@ export default function App() {
             companies={companies}
             sponsorPanels={sponsorPanels}
             selectedPavilion={selectedPavilion}
-            subcategoriesMap={subcategoriesMap}
             onSelectPavilion={(pav) => {
               setSelectedPavilion(pav);
             }}
@@ -402,13 +373,11 @@ export default function App() {
               sponsorPanels={sponsorPanels}
               collaborators={collaborators}
               pointsRules={pointsRules}
-              subcategoriesMap={subcategoriesMap}
               onUpdateCompanies={setCompanies}
               onUpdatePanoramas={setPanoramas}
               onUpdateSponsorPanels={setSponsorPanels}
               onUpdateCollaborators={setCollaborators}
               onUpdatePointsRules={setPointsRules}
-              onUpdateSubcategoriesMap={setSubcategoriesMap}
               onCreditUserPoints={handleCreditUserPoints}
             />
           ) : (
@@ -454,7 +423,6 @@ export default function App() {
           pavilion={selectedPavilion}
           pavilions={pavilions}
           companies={companies}
-          subcategoriesMap={subcategoriesMap}
           onClose={() => setShowExpoModal(false)}
           onSelectCompany={(comp) => setSelectedCompany(comp)}
           onSelectPavilion={(pav) => setSelectedPavilion(pav)}

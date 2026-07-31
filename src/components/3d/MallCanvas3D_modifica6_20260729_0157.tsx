@@ -9,8 +9,7 @@ interface MallCanvas3DProps {
   companies: Company[];
   sponsorPanels?: SponsorPanel[];
   selectedPavilion: Pavilion | null;
-  subcategoriesMap?: Record<string, SubCategory[]>;
-  onSelectPavilion: (pavilion: Pavilion | null) => void;
+  onSelectPavilion: (pavilion: Pavilion) => void;
   onSelectCompany: (company: Company) => void;
   onSelectSponsorPanel?: (panel: SponsorPanel) => void;
   onOpenExpoModal?: (pavilion: Pavilion) => void;
@@ -343,7 +342,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
   companies,
   sponsorPanels = [],
   selectedPavilion,
-  subcategoriesMap,
   onSelectPavilion,
   onSelectCompany,
   onSelectSponsorPanel,
@@ -573,7 +571,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
 
     // 5. Enclosed Architecture
     const corridorLength = 340; // x = -30 to 310
-    const hallWidth = 16.2; // z = -8.1 to +8.1 (resized corridor width by another 10%)
+    const hallWidth = 18; // z = -9 to +9 (10% resized corridor width)
 
     // Floor Texture Canvas
     const canvas = document.createElement('canvas');
@@ -612,8 +610,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
-    // Carpet Path down center (6.48m width = 10% resized)
-    const carpetGeo = new THREE.PlaneGeometry(corridorLength, 6.48);
+    // Carpet Path down center (7.2m width = 10% resized)
+    const carpetGeo = new THREE.PlaneGeometry(corridorLength, 7.2);
     carpetGeo.rotateX(-Math.PI / 2);
     const carpetMat = new THREE.MeshStandardMaterial({
       color: isCategoryCorridor ? themeColorHex : 0x1a0b2e,
@@ -626,7 +624,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     scene.add(carpetMesh);
 
     // Glowing Carpet Border Strips
-    [-3.24, 3.24].forEach((zEdge) => {
+    [-3.6, 3.6].forEach((zEdge) => {
       const stripGeo = new THREE.BoxGeometry(corridorLength, 0.05, 0.3);
       const stripMat = new THREE.MeshBasicMaterial({ color: themeColor });
       const stripMesh = new THREE.Mesh(stripGeo, stripMat);
@@ -678,12 +676,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
 
     // Left Wall
     const wallLeft = new THREE.Mesh(wallGeo, wallMat);
-    wallLeft.position.set(135, 4.5, -8.1);
+    wallLeft.position.set(135, 4.5, -9);
     scene.add(wallLeft);
 
     // Right Wall
     const wallRight = new THREE.Mesh(wallGeo, wallMat);
-    wallRight.position.set(135, 4.5, 8.1);
+    wallRight.position.set(135, 4.5, 9);
     wallRight.rotation.y = Math.PI;
     scene.add(wallRight);
 
@@ -695,8 +693,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         const isOverhead = sp.side === 'overhead' || sp.isOverhead;
 
         const panelGroup = new THREE.Group();
-        const zPos = isOverhead ? 0 : (sp.side === 'left' ? -7.94 : 7.94);
-        const yPos = isOverhead ? 6.2 : 2.8;
+        const zPos = isOverhead ? 0 : (sp.side === 'left' ? -8.82 : 8.82);
+        const yPos = isOverhead ? 6.2 : 4.5;
         const rotY = isOverhead ? -Math.PI / 2 : (sp.side === 'left' ? 0 : Math.PI);
         panelGroup.position.set(sp.positionX, yPos, zPos);
         panelGroup.rotation.y = rotY;
@@ -962,7 +960,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         emissiveIntensity: 0.4,
       });
 
-      const archWidth = 9.3;
+      const archWidth = 10.35;
       const archHeight = 6.4;
 
       const topBar = new THREE.Mesh(new THREE.BoxGeometry(archWidth, 0.7, 0.7), frameMat);
@@ -1095,8 +1093,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     avatarRigRef.current = avatarRig;
     scene.add(avatarRig.group);
 
-    // Create 3D Floor Navigation Cursor (Black disc with Orange Meta-tv text & Direction Arrow) - Resized another 10% smaller (1.45 x 1.45)
-    const floorCursorGeo = new THREE.PlaneGeometry(1.45, 1.45);
+    // Create 3D Floor Navigation Cursor (Black disc with Orange Meta-tv text & Direction Arrow) - Resized another 10% smaller (1.61 x 1.61)
+    const floorCursorGeo = new THREE.PlaneGeometry(1.61, 1.61);
     floorCursorGeo.rotateX(-Math.PI / 2);
     const floorCursorMat = new THREE.MeshBasicMaterial({
       map: createFloorCursorTexture(),
@@ -1113,13 +1111,48 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     floorCursorRef.current = floorCursorMesh;
 
     // Ceiling Neon Beams in Category Color
-    [-4.86, 0, 4.86].forEach((zPos) => {
+    [-5.4, 0, 5.4].forEach((zPos) => {
       const beamGeo = new THREE.BoxGeometry(corridorLength, 0.15, 0.3);
       const beamMat = new THREE.MeshBasicMaterial({ color: themeColor });
       const beamMesh = new THREE.Mesh(beamGeo, beamMat);
       beamMesh.position.set(135, 8.9, zPos);
       scene.add(beamMesh);
     });
+
+    // Overhead Arch Pillars
+    const colGeo = new THREE.BoxGeometry(0.7, 9.0, 0.7);
+    const beamGeo = new THREE.BoxGeometry(0.7, 0.7, hallWidth - 0.7);
+    const neonGeo = new THREE.BoxGeometry(0.12, 9.0, 0.12);
+    const colMat = new THREE.MeshStandardMaterial({ color: 0x1a1c2a, metalness: 0.1, roughness: 0.8 });
+    const neonMat = new THREE.MeshBasicMaterial({ color: themeColor });
+
+    for (let x = -10; x <= 290; x += 25) {
+      const archGroup = new THREE.Group();
+      archGroup.position.set(x, 0, 0);
+
+      const colL = new THREE.Mesh(colGeo, colMat);
+      colL.position.set(0, 4.5, -8.65);
+      archGroup.add(colL);
+
+      const colR = new THREE.Mesh(colGeo, colMat);
+      colR.position.set(0, 4.5, 8.65);
+      archGroup.add(colR);
+
+      const beamMesh = new THREE.Mesh(beamGeo, colMat);
+      beamMesh.position.set(0, 8.65, 0);
+      archGroup.add(beamMesh);
+
+      // Neon Trim on Pillars in Category Color
+      const neonL = new THREE.Mesh(neonGeo, neonMat);
+      neonL.position.set(0, 4.5, -8.3);
+      archGroup.add(neonL);
+
+      const neonR = new THREE.Mesh(neonGeo, neonMat);
+      neonR.position.set(0, 4.5, 8.3);
+      archGroup.add(neonR);
+
+      scene.add(archGroup);
+    }
 
     // Floating Overhead Billboard Banner in Corridor
     const billboardGroup = new THREE.Group();
@@ -1195,9 +1228,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
 
     if (isCategoryCorridor && selectedPavilion) {
       // Build Subcategory Doors for the active Category!
-      const subcategories =
-        (subcategoriesMap && subcategoriesMap[selectedPavilion.id]) ||
-        getSubcategoriesForPavilion(selectedPavilion, companiesRef.current);
+      const subcategories = getSubcategoriesForPavilion(selectedPavilion, companiesRef.current);
 
       subcategories.forEach((sub, idx) => {
         const side = idx % 2 === 0 ? 'left' : 'right';
@@ -1215,7 +1246,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         });
 
         const pGroup = new THREE.Group();
-        const zPos = side === 'left' ? -7.45 : 7.45;
+        const zPos = side === 'left' ? -8.28 : 8.28;
         pGroup.position.set(positionX, 0, zPos);
 
         const subColor = new THREE.Color(selectedPavilion.color);
@@ -1337,7 +1368,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         });
 
         const pGroup = new THREE.Group();
-        const zPos = p.side === 'left' ? -7.45 : 7.45;
+        const zPos = p.side === 'left' ? -8.28 : 8.28;
         pGroup.position.set(p.positionX, 0, zPos);
 
         const archMat = new THREE.MeshStandardMaterial({
@@ -1681,7 +1712,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         const deltaY = e.clientY - mousePrevRef.current.y;
 
         playerYawRef.current -= deltaX * 0.003;
-        playerPitchRef.current = 0;
+        playerPitchRef.current = Math.max(-0.35, Math.min(0.30, playerPitchRef.current - deltaY * 0.003));
 
         mousePrevRef.current = { x: e.clientX, y: e.clientY };
         return;
@@ -1877,7 +1908,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       const deltaY = touch.clientY - mousePrevRef.current.y;
 
       playerYawRef.current -= deltaX * 0.0035;
-      playerPitchRef.current = 0;
+      playerPitchRef.current = Math.max(-0.35, Math.min(0.30, playerPitchRef.current - deltaY * 0.0035));
 
       mousePrevRef.current = { x: touch.clientX, y: touch.clientY };
     };
@@ -2084,7 +2115,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         }
 
         playerPosRef.current.x = Math.max(-23, Math.min(295, playerPosRef.current.x));
-        playerPosRef.current.z = Math.max(-3.6, Math.min(3.6, playerPosRef.current.z));
+        playerPosRef.current.z = Math.max(-4.0, Math.min(4.0, playerPosRef.current.z));
 
         // Floor Navigation Indicators & Proximity Check
         const currentX = playerPosRef.current.x;
@@ -2152,7 +2183,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           } else if (currentX <= -21) {
             portalCooldownRef.current = nowTime + 2500;
             onSelectPavilionRef.current(prevTargetRef.current);
-          } else if (Math.abs(currentZ) >= 2.0) {
+          } else if (Math.abs(currentZ) >= 2.2) {
             const isPressingUp = keys['w'] || keys['arrowup'];
 
             // Check if avatar is approaching a manifesto (Sponsor Panel) on the wall
@@ -2175,7 +2206,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
                 handleDoorAction(sideDoor);
               } else if (!isPressingUp) {
                 // Keep avatar inside corridor when moving with left/right keys unless pressing UP
-                playerPosRef.current.z = Math.max(-2.0, Math.min(2.0, currentZ));
+                playerPosRef.current.z = Math.max(-2.2, Math.min(2.2, currentZ));
               }
             }
           }
@@ -2313,7 +2344,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       }
       renderer.dispose();
     };
-  }, [pavilions, selectedPavilion, subcategoriesMap, walkSpeed, isVRMode, isAutoTour, avatarGender]);
+  }, [pavilions, selectedPavilion, walkSpeed, isVRMode, isAutoTour, avatarGender]);
 
   const handleRecenter = () => {
     playerPosRef.current.x = 0;
@@ -2438,7 +2469,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           pavilions={pavilions}
           companies={companies}
           selectedPavilion={selectedPavilion}
-          subcategoriesMap={subcategoriesMap}
           playerX={playerMapX}
           playerZ={playerMapZ}
           playerYaw={playerMapYaw}

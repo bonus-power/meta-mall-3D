@@ -9,8 +9,7 @@ interface MallCanvas3DProps {
   companies: Company[];
   sponsorPanels?: SponsorPanel[];
   selectedPavilion: Pavilion | null;
-  subcategoriesMap?: Record<string, SubCategory[]>;
-  onSelectPavilion: (pavilion: Pavilion | null) => void;
+  onSelectPavilion: (pavilion: Pavilion) => void;
   onSelectCompany: (company: Company) => void;
   onSelectSponsorPanel?: (panel: SponsorPanel) => void;
   onOpenExpoModal?: (pavilion: Pavilion) => void;
@@ -343,7 +342,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
   companies,
   sponsorPanels = [],
   selectedPavilion,
-  subcategoriesMap,
   onSelectPavilion,
   onSelectCompany,
   onSelectSponsorPanel,
@@ -429,11 +427,9 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
   const lastFloorKeyRef = useRef<string>('');
   const lastCorridorDirRef = useRef<'forward' | 'backward' | ''>('');
 
-  // Trigger avatar reset to central home corridor position (x = 0, y = 1.7, z = 0)
+  // Trigger avatar reset to central corridor position (z = 0) when stepping back from manifesto
   useEffect(() => {
     if (resetAvatarTrigger && playerPosRef.current) {
-      playerPosRef.current.x = 0;
-      playerPosRef.current.y = 1.7;
       playerPosRef.current.z = 0;
       playerYawRef.current = -Math.PI / 2;
       playerPitchRef.current = 0;
@@ -524,19 +520,19 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
 
     // Device and Performance Detection
     const isMobileDevice = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const maxPixelRatio = 1.0;
+    const maxPixelRatio = isMobileDevice ? 1.0 : 1.25;
 
-    // 3. Renderer setup - Optimized for maximum FPS & fluid motion
+    // 3. Renderer setup
     const renderer = new THREE.WebGLRenderer({
-      antialias: false,
+      antialias: !isMobileDevice,
       alpha: false,
       powerPreference: 'high-performance',
-      precision: isMobileDevice ? 'lowp' : 'mediump',
-      stencil: false,
+      precision: isMobileDevice ? 'mediump' : 'highp',
     });
     renderer.setSize(width, height, true);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
-    renderer.shadowMap.enabled = false;
+    renderer.shadowMap.enabled = !isMobileDevice;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2;
 
@@ -555,25 +551,29 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     const themeColorHex = selectedPavilion ? selectedPavilion.color : '#ffd700';
     const themeColor = new THREE.Color(themeColorHex);
 
-    // 4. Lights - Super lightweight ambient & directional setup
-    const ambientLight = new THREE.AmbientLight(0xfff0dd, isCategoryCorridor ? 1.5 : 1.3);
+    // 4. Lights
+    const ambientLight = new THREE.AmbientLight(0xfff0dd, isCategoryCorridor ? 1.3 : 1.0);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(themeColor, 1.6);
+    const dirLight = new THREE.DirectionalLight(themeColor, 1.8);
     dirLight.position.set(50, 25, 15);
-    dirLight.castShadow = false;
+    dirLight.castShadow = !isMobileDevice;
+    if (!isMobileDevice) {
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+    }
     scene.add(dirLight);
 
-    // Optimized Corridor Lights (3 Stations along length for max GPU performance)
-    [30, 135, 240].forEach((lightX) => {
-      const pLight = new THREE.PointLight(themeColor, 1.8, 45);
+    // Optimized Corridor Lights (6 Stations along length)
+    [-10, 50, 110, 170, 230, 290].forEach((lightX) => {
+      const pLight = new THREE.PointLight(themeColor, 2.0, 35);
       pLight.position.set(lightX, 7.5, 0);
       scene.add(pLight);
     });
 
     // 5. Enclosed Architecture
     const corridorLength = 340; // x = -30 to 310
-    const hallWidth = 16.2; // z = -8.1 to +8.1 (resized corridor width by another 10%)
+    const hallWidth = 20; // z = -10 to +10 (human-scaled corridor width)
 
     // Floor Texture Canvas
     const canvas = document.createElement('canvas');
@@ -604,21 +604,21 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     floorGeo.rotateX(-Math.PI / 2);
     const floorMat = new THREE.MeshStandardMaterial({
       map: floorTex,
-      roughness: 0.9,
-      metalness: 0.0,
+      roughness: 0.15,
+      metalness: 0.85,
     });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.position.set(135, 0, 0);
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
-    // Carpet Path down center (6.48m width = 10% resized)
-    const carpetGeo = new THREE.PlaneGeometry(corridorLength, 6.48);
+    // Carpet Path down center
+    const carpetGeo = new THREE.PlaneGeometry(corridorLength, 8);
     carpetGeo.rotateX(-Math.PI / 2);
     const carpetMat = new THREE.MeshStandardMaterial({
       color: isCategoryCorridor ? themeColorHex : 0x1a0b2e,
-      roughness: 0.9,
-      metalness: 0.0,
+      roughness: 0.4,
+      metalness: 0.3,
       emissive: isCategoryCorridor ? themeColorHex : 0x0a0412,
     });
     const carpetMesh = new THREE.Mesh(carpetGeo, carpetMat);
@@ -626,7 +626,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     scene.add(carpetMesh);
 
     // Glowing Carpet Border Strips
-    [-3.24, 3.24].forEach((zEdge) => {
+    [-4, 4].forEach((zEdge) => {
       const stripGeo = new THREE.BoxGeometry(corridorLength, 0.05, 0.3);
       const stripMat = new THREE.MeshBasicMaterial({ color: themeColor });
       const stripMesh = new THREE.Mesh(stripGeo, stripMat);
@@ -672,18 +672,18 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     const wallGeo = new THREE.PlaneGeometry(corridorLength, 9);
     const wallMat = new THREE.MeshStandardMaterial({
       map: wallTexture,
-      roughness: 0.9,
-      metalness: 0.0,
+      roughness: 0.2,
+      metalness: 0.8,
     });
 
     // Left Wall
     const wallLeft = new THREE.Mesh(wallGeo, wallMat);
-    wallLeft.position.set(135, 4.5, -8.1);
+    wallLeft.position.set(135, 4.5, -10);
     scene.add(wallLeft);
 
     // Right Wall
     const wallRight = new THREE.Mesh(wallGeo, wallMat);
-    wallRight.position.set(135, 4.5, 8.1);
+    wallRight.position.set(135, 4.5, 10);
     wallRight.rotation.y = Math.PI;
     scene.add(wallRight);
 
@@ -695,8 +695,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         const isOverhead = sp.side === 'overhead' || sp.isOverhead;
 
         const panelGroup = new THREE.Group();
-        const zPos = isOverhead ? 0 : (sp.side === 'left' ? -7.94 : 7.94);
-        const yPos = isOverhead ? 6.2 : 2.8;
+        const zPos = isOverhead ? 0 : (sp.side === 'left' ? -9.8 : 9.8);
+        const yPos = isOverhead ? 6.2 : 4.5;
         const rotY = isOverhead ? -Math.PI / 2 : (sp.side === 'left' ? 0 : Math.PI);
         panelGroup.position.set(sp.positionX, yPos, zPos);
         panelGroup.rotation.y = rotY;
@@ -962,7 +962,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         emissiveIntensity: 0.4,
       });
 
-      const archWidth = 9.3;
+      const archWidth = 11.5;
       const archHeight = 6.4;
 
       const topBar = new THREE.Mesh(new THREE.BoxGeometry(archWidth, 0.7, 0.7), frameMat);
@@ -1083,8 +1083,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     ceilingGeo.rotateX(Math.PI / 2);
     const ceilingMat = new THREE.MeshStandardMaterial({
       color: 0x0a0c16,
-      roughness: 0.9,
-      metalness: 0.0,
+      roughness: 0.2,
+      metalness: 0.8,
     });
     const ceilingMesh = new THREE.Mesh(ceilingGeo, ceilingMat);
     ceilingMesh.position.set(135, 9.0, 0);
@@ -1095,8 +1095,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     avatarRigRef.current = avatarRig;
     scene.add(avatarRig.group);
 
-    // Create 3D Floor Navigation Cursor (Black disc with Orange Meta-tv text & Direction Arrow) - Resized another 10% smaller (1.45 x 1.45)
-    const floorCursorGeo = new THREE.PlaneGeometry(1.45, 1.45);
+    // Create 3D Floor Navigation Cursor (Black disc with Orange Meta-tv text & Direction Arrow)
+    const floorCursorGeo = new THREE.PlaneGeometry(2.24, 2.24);
     floorCursorGeo.rotateX(-Math.PI / 2);
     const floorCursorMat = new THREE.MeshBasicMaterial({
       map: createFloorCursorTexture(),
@@ -1113,13 +1113,48 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     floorCursorRef.current = floorCursorMesh;
 
     // Ceiling Neon Beams in Category Color
-    [-4.86, 0, 4.86].forEach((zPos) => {
+    [-6, 0, 6].forEach((zPos) => {
       const beamGeo = new THREE.BoxGeometry(corridorLength, 0.15, 0.3);
       const beamMat = new THREE.MeshBasicMaterial({ color: themeColor });
       const beamMesh = new THREE.Mesh(beamGeo, beamMat);
       beamMesh.position.set(135, 8.9, zPos);
       scene.add(beamMesh);
     });
+
+    // Overhead Arch Pillars
+    for (let x = -20; x <= 290; x += 15) {
+      const archGroup = new THREE.Group();
+      archGroup.position.set(x, 0, 0);
+
+      const colGeo = new THREE.BoxGeometry(0.7, 9.0, 0.7);
+      const colMat = new THREE.MeshStandardMaterial({ color: 0x1a1c2a, metalness: 0.9, roughness: 0.1 });
+      
+      const colL = new THREE.Mesh(colGeo, colMat);
+      colL.position.set(0, 4.5, -9.65);
+      archGroup.add(colL);
+
+      const colR = new THREE.Mesh(colGeo, colMat);
+      colR.position.set(0, 4.5, 9.65);
+      archGroup.add(colR);
+
+      const beamGeo = new THREE.BoxGeometry(0.7, 0.7, hallWidth - 0.7);
+      const beamMesh = new THREE.Mesh(beamGeo, colMat);
+      beamMesh.position.set(0, 8.65, 0);
+      archGroup.add(beamMesh);
+
+      // Neon Trim on Pillars in Category Color
+      const neonGeo = new THREE.BoxGeometry(0.12, 9.0, 0.12);
+      const neonMat = new THREE.MeshBasicMaterial({ color: themeColor });
+      const neonL = new THREE.Mesh(neonGeo, neonMat);
+      neonL.position.set(0, 4.5, -9.3);
+      archGroup.add(neonL);
+
+      const neonR = new THREE.Mesh(neonGeo, neonMat);
+      neonR.position.set(0, 4.5, 9.3);
+      archGroup.add(neonR);
+
+      scene.add(archGroup);
+    }
 
     // Floating Overhead Billboard Banner in Corridor
     const billboardGroup = new THREE.Group();
@@ -1195,9 +1230,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
 
     if (isCategoryCorridor && selectedPavilion) {
       // Build Subcategory Doors for the active Category!
-      const subcategories =
-        (subcategoriesMap && subcategoriesMap[selectedPavilion.id]) ||
-        getSubcategoriesForPavilion(selectedPavilion, companiesRef.current);
+      const subcategories = getSubcategoriesForPavilion(selectedPavilion, companiesRef.current);
 
       subcategories.forEach((sub, idx) => {
         const side = idx % 2 === 0 ? 'left' : 'right';
@@ -1215,14 +1248,14 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         });
 
         const pGroup = new THREE.Group();
-        const zPos = side === 'left' ? -7.45 : 7.45;
+        const zPos = side === 'left' ? -9.2 : 9.2;
         pGroup.position.set(positionX, 0, zPos);
 
         const subColor = new THREE.Color(selectedPavilion.color);
         const archMat = new THREE.MeshStandardMaterial({
           color: subColor,
-          metalness: 0.2,
-          roughness: 0.7,
+          metalness: 0.8,
+          roughness: 0.2,
         });
 
         // Pillar Columns
@@ -1337,13 +1370,13 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         });
 
         const pGroup = new THREE.Group();
-        const zPos = p.side === 'left' ? -7.45 : 7.45;
+        const zPos = p.side === 'left' ? -9.2 : 9.2;
         pGroup.position.set(p.positionX, 0, zPos);
 
         const archMat = new THREE.MeshStandardMaterial({
           color: new THREE.Color(p.color),
-          metalness: 0.2,
-          roughness: 0.7,
+          metalness: 0.8,
+          roughness: 0.2,
         });
 
         const pillarGeo = new THREE.CylinderGeometry(0.45, 0.55, 4.8, 16);
@@ -1445,12 +1478,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
     }
 
     // Floor Navigation Indicators (Arrows & Labels at door height)
-    const floorTextureCache = new Map<string, THREE.CanvasTexture>();
-
-    const getFloorLabelTexture = (text: string, side: 'left' | 'right', colorHex: string) => {
-      const key = `label_${text}_${side}_${colorHex}`;
-      if (floorTextureCache.has(key)) return floorTextureCache.get(key)!;
-
+    const createFloorLabelTexture = (text: string, side: 'left' | 'right', colorHex: string) => {
       const canvas = document.createElement('canvas');
       canvas.width = 1024;
       canvas.height = 256;
@@ -1472,14 +1500,10 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       }
       const texture = new THREE.CanvasTexture(canvas);
       texture.needsUpdate = true;
-      floorTextureCache.set(key, texture);
       return texture;
     };
 
-    const getFloorArrowTexture = (colorHex: string, side: 'left' | 'right') => {
-      const key = `arrow_${colorHex}_${side}`;
-      if (floorTextureCache.has(key)) return floorTextureCache.get(key)!;
-
+    const createFloorArrowTexture = (colorHex: string, side: 'left' | 'right') => {
       const canvas = document.createElement('canvas');
       canvas.width = 256;
       canvas.height = 512;
@@ -1516,7 +1540,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       }
       const texture = new THREE.CanvasTexture(canvas);
       texture.needsUpdate = true;
-      floorTextureCache.set(key, texture);
       return texture;
     };
 
@@ -1674,50 +1697,43 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       }
     };
 
-    let lastHoverCheckTime = 0;
     const onMouseMove = (e: MouseEvent) => {
-      if (isMouseDownRef.current) {
-        const deltaX = e.clientX - mousePrevRef.current.x;
-        const deltaY = e.clientY - mousePrevRef.current.y;
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouseVector.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseVector.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-        playerYawRef.current -= deltaX * 0.003;
-        playerPitchRef.current = 0;
-
-        mousePrevRef.current = { x: e.clientX, y: e.clientY };
-        return;
-      }
-
-      const now = performance.now();
-      if (now - lastHoverCheckTime > 80) {
-        lastHoverCheckTime = now;
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouseVector.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        mouseVector.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouseVector, camera);
-        const intersects = raycaster.intersectObjects(scene.children, true);
-        let hovering = false;
-        if (intersects.length > 0) {
-          let current: THREE.Object3D | null = intersects[0].object;
-          while (current) {
-            if (
-              current.userData &&
-              (current.userData.pavilionId ||
-                current.userData.subCategory ||
-                current.userData.type === 'corridor_portal' ||
-                current.userData.type === 'sponsor_panel' ||
-                current.userData.type === 'avatar' ||
-                current.userData.type === 'floor_arrow_left' ||
-                current.userData.type === 'floor_arrow_right')
-            ) {
-              hovering = true;
-              break;
-            }
-            current = current.parent;
+      raycaster.setFromCamera(mouseVector, camera);
+      const intersects = raycaster.intersectObjects(scene.children, true);
+      let hovering = false;
+      if (intersects.length > 0) {
+        let current: THREE.Object3D | null = intersects[0].object;
+        while (current) {
+          if (
+            current.userData &&
+            (current.userData.pavilionId ||
+              current.userData.subCategory ||
+              current.userData.type === 'corridor_portal' ||
+              current.userData.type === 'sponsor_panel' ||
+              current.userData.type === 'avatar' ||
+              current.userData.type === 'floor_arrow_left' ||
+              current.userData.type === 'floor_arrow_right')
+          ) {
+            hovering = true;
+            break;
           }
+          current = current.parent;
         }
-        renderer.domElement.style.cursor = hovering ? 'pointer' : 'grab';
       }
+      renderer.domElement.style.cursor = hovering ? 'pointer' : 'grab';
+
+      if (!isMouseDownRef.current) return;
+      const deltaX = e.clientX - mousePrevRef.current.x;
+      const deltaY = e.clientY - mousePrevRef.current.y;
+
+      playerYawRef.current -= deltaX * 0.003;
+      playerPitchRef.current = Math.max(-0.35, Math.min(0.30, playerPitchRef.current - deltaY * 0.003));
+
+      mousePrevRef.current = { x: e.clientX, y: e.clientY };
     };
 
     const onMouseUp = () => {
@@ -1877,7 +1893,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       const deltaY = touch.clientY - mousePrevRef.current.y;
 
       playerYawRef.current -= deltaX * 0.0035;
-      playerPitchRef.current = 0;
+      playerPitchRef.current = Math.max(-0.35, Math.min(0.30, playerPitchRef.current - deltaY * 0.0035));
 
       mousePrevRef.current = { x: touch.clientX, y: touch.clientY };
     };
@@ -2084,7 +2100,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
         }
 
         playerPosRef.current.x = Math.max(-23, Math.min(295, playerPosRef.current.x));
-        playerPosRef.current.z = Math.max(-3.6, Math.min(3.6, playerPosRef.current.z));
+        playerPosRef.current.z = Math.max(-4.5, Math.min(4.5, playerPosRef.current.z));
 
         // Floor Navigation Indicators & Proximity Check
         const currentX = playerPosRef.current.x;
@@ -2105,10 +2121,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
             lastFloorKeyRef.current = floorKey;
 
             if (leftDoor) {
-              leftLabelMat.map = getFloorLabelTexture(leftDoor.name.toUpperCase(), 'left', leftDoor.color || '#38bdf8');
+              if (leftLabelMat.map) leftLabelMat.map.dispose();
+              leftLabelMat.map = createFloorLabelTexture(leftDoor.name.toUpperCase(), 'left', leftDoor.color || '#38bdf8');
               leftLabelMat.needsUpdate = true;
 
-              leftArrowMat.map = getFloorArrowTexture(leftDoor.color || '#38bdf8', 'left');
+              if (leftArrowMat.map) leftArrowMat.map.dispose();
+              leftArrowMat.map = createFloorArrowTexture(leftDoor.color || '#38bdf8', 'left');
               leftArrowMat.needsUpdate = true;
 
               leftLabelMesh.visible = true;
@@ -2119,10 +2137,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
             }
 
             if (rightDoor) {
-              rightLabelMat.map = getFloorLabelTexture(rightDoor.name.toUpperCase(), 'right', rightDoor.color || '#facc15');
+              if (rightLabelMat.map) rightLabelMat.map.dispose();
+              rightLabelMat.map = createFloorLabelTexture(rightDoor.name.toUpperCase(), 'right', rightDoor.color || '#facc15');
               rightLabelMat.needsUpdate = true;
 
-              rightArrowMat.map = getFloorArrowTexture(rightDoor.color || '#facc15', 'right');
+              if (rightArrowMat.map) rightArrowMat.map.dispose();
+              rightArrowMat.map = createFloorArrowTexture(rightDoor.color || '#facc15', 'right');
               rightArrowMat.needsUpdate = true;
 
               rightLabelMesh.visible = true;
@@ -2152,7 +2172,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           } else if (currentX <= -21) {
             portalCooldownRef.current = nowTime + 2500;
             onSelectPavilionRef.current(prevTargetRef.current);
-          } else if (Math.abs(currentZ) >= 2.0) {
+          } else if (Math.abs(currentZ) >= 2.2) {
             const isPressingUp = keys['w'] || keys['arrowup'];
 
             // Check if avatar is approaching a manifesto (Sponsor Panel) on the wall
@@ -2175,7 +2195,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
                 handleDoorAction(sideDoor);
               } else if (!isPressingUp) {
                 // Keep avatar inside corridor when moving with left/right keys unless pressing UP
-                playerPosRef.current.z = Math.max(-2.0, Math.min(2.0, currentZ));
+                playerPosRef.current.z = Math.max(-2.2, Math.min(2.2, currentZ));
               }
             }
           }
@@ -2313,11 +2333,9 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       }
       renderer.dispose();
     };
-  }, [pavilions, selectedPavilion, subcategoriesMap, walkSpeed, isVRMode, isAutoTour, avatarGender]);
+  }, [pavilions, selectedPavilion, walkSpeed, isVRMode, isAutoTour, avatarGender]);
 
   const handleRecenter = () => {
-    playerPosRef.current.x = 0;
-    playerPosRef.current.y = 1.7;
     playerPosRef.current.z = 0;
     playerYawRef.current = -Math.PI / 2;
     playerPitchRef.current = 0;
@@ -2438,7 +2456,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           pavilions={pavilions}
           companies={companies}
           selectedPavilion={selectedPavilion}
-          subcategoriesMap={subcategoriesMap}
           playerX={playerMapX}
           playerZ={playerMapZ}
           playerYaw={playerMapYaw}

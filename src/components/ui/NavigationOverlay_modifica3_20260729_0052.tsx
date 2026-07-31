@@ -25,7 +25,6 @@ import {
   VolumeX,
   Radio,
   ChevronDown,
-  LogOut,
 } from 'lucide-react';
 import { PointsRuleConfig } from '../../types';
 
@@ -107,7 +106,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
       setIsFullscreen(true);
       triggerResizeEvents();
 
-      // Attempt native browser fullscreen on first user touch/tap with navigation UI hidden on mobile
+      // Attempt native browser fullscreen on first user touch/tap
       const attemptNativeFSOnTouch = () => {
         const docEl = document.documentElement as any;
         const requestFS =
@@ -116,7 +115,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
           docEl.mozRequestFullScreen ||
           docEl.msRequestFullscreen;
         if (requestFS && !document.fullscreenElement) {
-          requestFS.call(docEl, { navigationUI: 'hide' }).catch(() => {});
+          requestFS.call(docEl).catch(() => {});
         }
       };
       window.addEventListener('touchstart', attemptNativeFSOnTouch, { once: true });
@@ -168,7 +167,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
         docEl.msRequestFullscreen;
 
       if (requestFS) {
-        requestFS.call(docEl, { navigationUI: 'hide' }).catch((err: any) => {
+        requestFS.call(docEl).catch((err: any) => {
           console.warn('Native fullscreen policy fallback to CSS immersive viewport:', err);
         });
       }
@@ -189,44 +188,6 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
     triggerResizeEvents();
   };
 
-  const handleExitApp = () => {
-    // 1. Exit fullscreen mode
-    document.body.classList.remove('fullscreen-mode');
-    setIsFullscreen(false);
-
-    const doc = document as any;
-    const exitFS =
-      doc.exitFullscreen ||
-      doc.webkitExitFullscreen ||
-      doc.mozCancelFullScreen ||
-      doc.msExitFullscreen;
-
-    if (exitFS && document.fullscreenElement) {
-      exitFS.call(doc).catch(() => {});
-    }
-
-    // 2. Unlock orientation if locked
-    if (screen.orientation && (screen.orientation as any).unlock) {
-      try {
-        (screen.orientation as any).unlock();
-      } catch (e) {}
-    }
-
-    // 3. Recenter avatar/camera
-    window.dispatchEvent(new CustomEvent('recenter-visuale'));
-
-    // 4. Close browser tab / go back if supported
-    if (window.history.length > 1) {
-      try {
-        window.history.back();
-      } catch (e) {}
-    } else {
-      try {
-        window.close();
-      } catch (e) {}
-    }
-  };
-
   // Calculate percentage along corridor for minimap
   const minimapPercent = Math.min(100, Math.max(0, ((playerXPosition + 10) / 300) * 100));
 
@@ -234,8 +195,8 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
     <>
       {/* Fullscreen Mode Minimalist HUD Bar - ONLY controls shown in Fullscreen */}
       {isFullscreen ? (
-        <div className="fixed top-3 left-3 sm:left-6 z-[99999] flex items-center gap-2 sm:gap-3 bg-slate-950/90 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl border-2 border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.35)] select-none max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
-          {/* 1. Esci Fullscreen */}
+        <div className="fixed top-3 left-3 sm:left-6 z-[99999] flex items-center gap-2 sm:gap-3 bg-slate-950/90 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl border-2 border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.35)] select-none max-w-[calc(100vw-120px)] overflow-x-auto no-scrollbar">
+          {/* 1. Schermo Intero / Esci Fullscreen */}
           <button
             onClick={toggleFullscreen}
             className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all border border-amber-300 cursor-pointer shrink-0"
@@ -246,20 +207,9 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
             <span className="xs:hidden">Esci</span>
           </button>
 
-          {/* 2. Chiudi App / Torna al Cellulare */}
-          <button
-            onClick={handleExitApp}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-red-600/90 hover:bg-red-500 text-white font-extrabold rounded-xl text-xs sm:text-sm uppercase tracking-wider border border-red-400 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer shrink-0"
-            title="Chiudi l'app e torna al cellulare"
-          >
-            <LogOut className="w-4 h-4 text-white" />
-            <span className="hidden sm:inline">Chiudi App</span>
-            <span className="sm:hidden">Chiudi</span>
-          </button>
-
           <div className="h-5 w-px bg-white/20 shrink-0" />
 
-          {/* 3. Teletrasporto */}
+          {/* 2. Teletrasporto */}
           <button
             onClick={() => setShowTeleportModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-white/10 text-amber-300 font-bold rounded-xl text-xs sm:text-sm uppercase tracking-wider border border-amber-500/40 hover:border-amber-400 transition-all active:scale-95 cursor-pointer shrink-0"
@@ -271,7 +221,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
           <div className="h-5 w-px bg-white/20 shrink-0" />
 
-          {/* 4. Velocità */}
+          {/* 3. Velocità */}
           <div className="flex items-center gap-2 px-1 sm:px-2 text-xs text-amber-300 font-bold shrink-0">
             <FastForward className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="hidden md:inline uppercase tracking-wider text-[11px] text-white/70">Velocità:</span>
@@ -289,7 +239,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
           <div className="h-5 w-px bg-white/20 shrink-0" />
 
-          {/* 5. Recentra Visuale */}
+          {/* 4. Recentra Visuale */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('recenter-visuale'))}
             className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-white/10 text-amber-300 font-bold rounded-xl text-xs sm:text-sm uppercase tracking-wider border border-amber-500/40 hover:border-amber-400 transition-all active:scale-95 cursor-pointer shrink-0"
@@ -304,11 +254,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
         /* Standard Header in Normal View Mode */
         <header className="absolute top-0 left-0 right-0 z-[9999] bg-black/95 backdrop-blur-md border-b border-white/10 px-2.5 py-1.5 sm:px-6 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 max-w-full overflow-visible shadow-xl">
           {/* Brand Logo */}
-          <div 
-            className="flex items-center gap-2 sm:gap-3.5 cursor-pointer shrink-0 hover:opacity-90 transition-opacity" 
-            onClick={() => onModeChange('corridor')}
-            title="Torna al corridoio iniziale (Home)"
-          >
+          <div className="flex items-center gap-2 sm:gap-3.5 cursor-pointer shrink-0" onClick={() => onModeChange('corridor')}>
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-tr from-yellow-600 via-yellow-400 to-yellow-200 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.4)]">
               <span className="text-black font-black text-base sm:text-xl italic font-serif">M</span>
             </div>
@@ -379,18 +325,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
               title="Schermo Intero Immersivo"
             >
               <Maximize2 className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="hidden xs:inline">Schermo Intero</span>
-            </button>
-
-            {/* Chiudi App / Torna al Cellulare Direct Button */}
-            <button
-              onClick={handleExitApp}
-              className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs uppercase tracking-wider font-extrabold bg-red-950/80 hover:bg-red-900/90 border border-red-500/60 text-red-300 transition-all shadow-md active:scale-95 cursor-pointer"
-              title="Chiudi l'app e torna al cellulare"
-            >
-              <LogOut className="w-3.5 h-3.5 text-red-400" />
-              <span className="hidden sm:inline">Chiudi App</span>
-              <span className="sm:hidden">Esci</span>
+              <span className="inline">Schermo Intero</span>
             </button>
 
             {/* Master Merged VIP & Tools Menu Dropdown */}

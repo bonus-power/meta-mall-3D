@@ -861,6 +861,7 @@ export const INITIAL_SPONSOR_PANELS: SponsorPanel[] = [
     status: 'active',
     pricePerMonth: '€499 / mese',
     category: 'Gold Sponsor',
+    pointsReward: 100,
   },
   {
     id: 'sp-2',
@@ -877,6 +878,7 @@ export const INITIAL_SPONSOR_PANELS: SponsorPanel[] = [
     status: 'active',
     pricePerMonth: '€799 / mese',
     category: 'Platinum Partner',
+    pointsReward: 150,
   },
   {
     id: 'sp-3',
@@ -891,6 +893,7 @@ export const INITIAL_SPONSOR_PANELS: SponsorPanel[] = [
     status: 'available',
     pricePerMonth: '€299 / mese',
     category: 'Standard Sponsor',
+    pointsReward: 40,
   },
   {
     id: 'sp-4',
@@ -905,6 +908,7 @@ export const INITIAL_SPONSOR_PANELS: SponsorPanel[] = [
     status: 'active',
     pricePerMonth: '€399 / mese',
     category: 'Gold Sponsor',
+    pointsReward: 80,
   },
   {
     id: 'sp-5',

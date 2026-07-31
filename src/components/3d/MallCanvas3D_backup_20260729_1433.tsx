@@ -10,7 +10,7 @@ interface MallCanvas3DProps {
   sponsorPanels?: SponsorPanel[];
   selectedPavilion: Pavilion | null;
   subcategoriesMap?: Record<string, SubCategory[]>;
-  onSelectPavilion: (pavilion: Pavilion | null) => void;
+  onSelectPavilion: (pavilion: Pavilion) => void;
   onSelectCompany: (company: Company) => void;
   onSelectSponsorPanel?: (panel: SponsorPanel) => void;
   onOpenExpoModal?: (pavilion: Pavilion) => void;
@@ -2313,7 +2313,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
       }
       renderer.dispose();
     };
-  }, [pavilions, selectedPavilion, subcategoriesMap, walkSpeed, isVRMode, isAutoTour, avatarGender]);
+  }, [pavilions, selectedPavilion, walkSpeed, isVRMode, isAutoTour, avatarGender]);
 
   const handleRecenter = () => {
     playerPosRef.current.x = 0;
@@ -2438,7 +2438,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
           pavilions={pavilions}
           companies={companies}
           selectedPavilion={selectedPavilion}
-          subcategoriesMap={subcategoriesMap}
           playerX={playerMapX}
           playerZ={playerMapZ}
           playerYaw={playerMapYaw}

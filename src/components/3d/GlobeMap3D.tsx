@@ -118,7 +118,6 @@ export const GlobeMap3D: React.FC<GlobeMap3DProps> = ({
         className: 'custom-company-marker',
         html: `
           <div class="relative flex items-center justify-center w-7 h-7 cursor-pointer group">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color: ${dotColor};"></span>
             <span class="relative inline-flex rounded-full h-4 w-4 border-2 border-white shadow-md transform group-hover:scale-125 transition-transform" style="background-color: ${dotColor};"></span>
             <div class="absolute -top-7 whitespace-nowrap hidden group-hover:block bg-slate-900/90 text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-500/40 shadow-lg">
               ${comp.name}

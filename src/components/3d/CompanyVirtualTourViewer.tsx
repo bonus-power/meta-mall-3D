@@ -357,7 +357,7 @@ export const CompanyVirtualTourViewer: React.FC<CompanyVirtualTourViewerProps> =
   const getHotspotIcon = (type: string) => {
     switch (type) {
       case 'scene-change':
-        return <DoorOpen className="w-5 h-5 text-yellow-300 fill-yellow-400/20 animate-pulse" />;
+        return <DoorOpen className="w-5 h-5 text-yellow-300 fill-yellow-400/20" />;
       case 'bonus-power':
         return <Zap className="w-5 h-5 text-black fill-black" />;
       case 'website':
@@ -406,7 +406,7 @@ export const CompanyVirtualTourViewer: React.FC<CompanyVirtualTourViewerProps> =
         {/* Action Buttons: Fullscreen, Direct Bonus-Power & Close */}
         <div className="flex items-center gap-2">
           {bonusPowerPoints > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-xs font-mono font-bold animate-pulse">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-yellow-500/20 border border-yellow-500/50 text-yellow-300 text-xs font-mono font-bold">
               <Sparkles className="w-4 h-4 text-yellow-400" />
               <span>+{bonusPowerPoints} Punti Power!</span>
             </div>
@@ -487,14 +487,12 @@ export const CompanyVirtualTourViewer: React.FC<CompanyVirtualTourViewerProps> =
               onClick={() => handleHotspotClick(hotspot)}
               className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-full shadow-[0_0_25px_rgba(0,0,0,0.8)] border transition-all transform hover:scale-110 active:scale-95 ${
                 isDoor
-                  ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-300 text-black border-yellow-100 font-extrabold shadow-[0_0_35px_rgba(255,215,0,0.9)] animate-bounce'
+                  ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-300 text-black border-yellow-100 font-extrabold shadow-[0_0_35px_rgba(255,215,0,0.9)]'
                   : isBonusPower
                   ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-300 text-black border-yellow-200 font-extrabold shadow-[0_0_30px_rgba(255,215,0,0.8)]'
                   : 'bg-black/85 text-white border-yellow-500/60 hover:border-yellow-400'
               }`}
             >
-              {/* Pulsing ring background */}
-              <span className="absolute -inset-1 rounded-full bg-yellow-400/40 animate-ping pointer-events-none opacity-75" />
 
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
