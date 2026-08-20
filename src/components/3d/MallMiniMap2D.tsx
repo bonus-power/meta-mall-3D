@@ -44,7 +44,7 @@ interface MallMiniMap2DProps {
   onOpenExpoModal?: (p: Pavilion) => void;
 }
 
-export const MallMiniMap2D: React.FC<MallMiniMap2DProps> = ({
+export const MallMiniMap2D: React.FC<MallMiniMap2DProps> = React.memo(({
   pavilions,
   selectedPavilion,
   subcategoriesMap,
@@ -927,4 +927,4 @@ export const MallMiniMap2D: React.FC<MallMiniMap2DProps> = ({
         )}
     </div>
   );
-};
+});

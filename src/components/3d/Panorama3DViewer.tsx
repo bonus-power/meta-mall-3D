@@ -137,6 +137,9 @@ export const Panorama3DViewer: React.FC<Panorama3DViewerProps> = ({ panoramas })
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
+      sphereGeo.dispose();
+      sphereMat.dispose();
+      texture.dispose();
       renderer.dispose();
     };
   }, [activePano, customImage]);

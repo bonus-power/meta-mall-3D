@@ -28,6 +28,7 @@ export interface SponsorPanel {
   status: 'active' | 'available' | 'pending';
   pricePerMonth: string;
   category?: string;
+  corridorIds?: string[]; // Target corridors: ['all'], or array like ['main', 'shopping', 'food', 'tech']
   createdAt?: string;
   boughtByEmail?: string;
   pointsReward?: number;
@@ -202,9 +203,18 @@ export interface ActivityLogItem {
 export interface UserProfile {
   id: string;
   username: string;
+  fullName?: string;
   email: string;
   isLoggedIn: boolean;
   createdAt: string;
+  role?: string;
+  discountPoints?: number;
+  walletBalance?: number;
+  qualifiedSilver?: boolean;
+  isCompany?: boolean;
+  comune?: string;
+  provincia?: string;
+  cap?: string;
 }
 
 export interface PointsRuleConfig {

@@ -87,7 +87,10 @@ export const GlobeMap3D: React.FC<GlobeMap3DProps> = ({
     tileLayerRef.current = newTileLayer;
 
     return () => {
-      // Cleanup handled when switching view
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
   }, [mapLayer]);
 

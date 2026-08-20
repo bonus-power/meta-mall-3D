@@ -19,7 +19,6 @@ interface MallCanvas3DProps {
   isAutoTour: boolean;
   onPositionUpdate?: (currentX: number, activePavilion: Pavilion | null) => void;
   resetAvatarTrigger?: number;
-  isMobileLite?: boolean;
 }
 
 export interface AvatarRig {
@@ -339,7 +338,7 @@ function createAvatarRig(gender: 'male' | 'female'): AvatarRig {
   };
 }
 
-export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> = ({
+export const MallCanvas3D: React.FC<MallCanvas3DProps> = ({
   pavilions,
   companies,
   sponsorPanels = [],
@@ -354,8 +353,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
   isAutoTour,
   onPositionUpdate,
   resetAvatarTrigger,
-  fovLevel = 100,
-  isMobileLite = false,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [controlsInfo] = useState<string>(
@@ -421,16 +418,11 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
   const keysRef = useRef<{ [key: string]: boolean }>({});
   const isMouseDownRef = useRef<boolean>(false);
   const mousePrevRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const fovLevelRef = useRef(fovLevel);
-  fovLevelRef.current = fovLevel;
 
   // 2D Mini-Map position state
   const [playerMapX, setPlayerMapX] = useState<number>(0);
   const [playerMapZ, setPlayerMapZ] = useState<number>(0);
   const [playerMapYaw, setPlayerMapYaw] = useState<number>(-Math.PI / 2);
-  const playerMapXRef = useRef<number>(0);
-  const playerMapZRef = useRef<number>(0);
-  const playerMapYawRef = useRef<number>(-Math.PI / 2);
   const lastMapUpdateRef = useRef<number>(0);
   const portalCooldownRef = useRef<number>(0);
   const doorDataListRef = useRef<DoorItemData[]>([]);
@@ -476,15 +468,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
 
   const onPositionUpdateRef = useRef(onPositionUpdate);
   onPositionUpdateRef.current = onPositionUpdate;
-
-  const walkSpeedRef = useRef(walkSpeed);
-  walkSpeedRef.current = walkSpeed;
-
-  const isVRModeRef = useRef(isVRMode);
-  isVRModeRef.current = isVRMode;
-
-  const isAutoTourRef = useRef(isAutoTour);
-  isAutoTourRef.current = isAutoTour;
 
   const lastPosUpdateXRef = useRef<number>(-999);
   const lastPosUpdateTimeRef = useRef<number>(0);
@@ -533,19 +516,18 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
 
     const { w: width, h: height } = getDimensions();
 
-    // Device and Performance Detection
-    const isMobileDevice = isMobileLite || (typeof navigator !== 'undefined' && (/Mobi|Android|iPhone|iPad|iPod|Touch/i.test(navigator.userAgent) || window.innerWidth < 768));
-    const maxPixelRatio = isMobileDevice ? 1.0 : 1.25;
-    const viewFarDistance = isMobileLite ? 90 : 140;
-
     // 1. Scene setup
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0c16);
-    scene.fog = new THREE.FogExp2(0x0a0c16, isMobileLite ? 0.012 : 0.007);
+    scene.fog = new THREE.FogExp2(0x0a0c16, 0.005);
 
-    // 2. Camera setup - Far plane calibrated for maximum GPU performance on mobile
-    const camera = new THREE.PerspectiveCamera(65, width / height, 0.1, viewFarDistance);
+    // 2. Camera setup
+    const camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 500);
     camera.position.copy(playerPosRef.current);
+
+    // Device and Performance Detection
+    const isMobileDevice = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const maxPixelRatio = 1.0;
 
     // 3. Renderer setup - Optimized for maximum FPS & fluid motion
     const renderer = new THREE.WebGLRenderer({
@@ -569,51 +551,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
     canvasEl.style.top = '0';
     canvasEl.style.left = '0';
 
-    // Handle WebGL Context Loss on Mobile GPUs gracefully
-    const handleContextLost = (e: Event) => {
-      e.preventDefault();
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-    };
-    const handleContextRestored = () => {
-      animate();
-    };
-    canvasEl.addEventListener('webglcontextlost', handleContextLost, false);
-    canvasEl.addEventListener('webglcontextrestored', handleContextRestored, false);
-
-    // Pause rendering loop when tab is hidden on mobile to conserve GPU memory and battery
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      } else {
-        animate();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
     container.appendChild(canvasEl);
 
     // Color theme logic based on whether we are in Main Corridor or Category Sub-Corridor
     const isCategoryCorridor = !!selectedPavilion;
     const themeColorHex = selectedPavilion ? selectedPavilion.color : '#ffd700';
     const themeColor = new THREE.Color(themeColorHex);
-
-    // Dynamic Corridor Length Calculation based on active items
-    const activeSubcategories = isCategoryCorridor && selectedPavilion
-      ? ((subcategoriesMap && subcategoriesMap[selectedPavilion.id]) || getSubcategoriesForPavilion(selectedPavilion, companiesRef.current))
-      : [];
-    const itemCount = isCategoryCorridor ? activeSubcategories.length : pavilions.length;
-    let maxItemX = 60;
-    if (isCategoryCorridor) {
-      if (itemCount > 0) maxItemX = Math.max(60, (itemCount - 1) * 30);
-    } else {
-      if (pavilions.length > 0) maxItemX = Math.max(60, ...pavilions.map((p) => p.positionX));
-    }
-
-    const entranceX = -25;
-    const exitX = maxItemX + 35;
-    const corridorLength = exitX - entranceX;
-    const corridorCenterX = (entranceX + exitX) / 2;
-    const hallWidth = 16.2;
 
     // 4. Lights - Super lightweight ambient & directional setup
     const ambientLight = new THREE.AmbientLight(0xfff0dd, isCategoryCorridor ? 1.5 : 1.3);
@@ -624,12 +567,16 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
     dirLight.castShadow = false;
     scene.add(dirLight);
 
-    // Dynamic Corridor Lights along length for max GPU performance
-    for (let lightX = entranceX + 25; lightX <= exitX - 10; lightX += 70) {
+    // Optimized Corridor Lights (3 Stations along length for max GPU performance)
+    [30, 135, 240].forEach((lightX) => {
       const pLight = new THREE.PointLight(themeColor, 1.8, 45);
       pLight.position.set(lightX, 7.5, 0);
       scene.add(pLight);
-    }
+    });
+
+    // 5. Enclosed Architecture
+    const corridorLength = 340; // x = -30 to 310
+    const hallWidth = 16.2; // z = -8.1 to +8.1 (resized corridor width by another 10%)
 
     // Floor Texture Canvas
     const canvas = document.createElement('canvas');
@@ -664,11 +611,11 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       metalness: 0.0,
     });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.position.set(corridorCenterX, 0, 0);
+    floorMesh.position.set(135, 0, 0);
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
 
-    // Carpet Path down center
+    // Carpet Path down center (6.48m width = 10% resized)
     const carpetGeo = new THREE.PlaneGeometry(corridorLength, 6.48);
     carpetGeo.rotateX(-Math.PI / 2);
     const carpetMat = new THREE.MeshStandardMaterial({
@@ -678,7 +625,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       emissive: isCategoryCorridor ? themeColorHex : 0x0a0412,
     });
     const carpetMesh = new THREE.Mesh(carpetGeo, carpetMat);
-    carpetMesh.position.set(corridorCenterX, 0.02, 0);
+    carpetMesh.position.set(135, 0.02, 0);
     scene.add(carpetMesh);
 
     // Glowing Carpet Border Strips
@@ -686,11 +633,11 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       const stripGeo = new THREE.BoxGeometry(corridorLength, 0.05, 0.3);
       const stripMat = new THREE.MeshBasicMaterial({ color: themeColor });
       const stripMesh = new THREE.Mesh(stripGeo, stripMat);
-      stripMesh.position.set(corridorCenterX, 0.03, zEdge);
+      stripMesh.position.set(135, 0.03, zEdge);
       scene.add(stripMesh);
     });
 
-    // Wall Texture Canvas
+    // Wall Texture Canvas (Distinct Wall Colors per Category!)
     const wallCanvas = document.createElement('canvas');
     wallCanvas.width = 512;
     wallCanvas.height = 256;
@@ -699,6 +646,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       wCtx.fillStyle = isCategoryCorridor ? '#0a0d18' : '#141624';
       wCtx.fillRect(0, 0, 512, 256);
 
+      // Horizontal Wall Accent Lines in Category Color
       wCtx.strokeStyle = themeColorHex;
       wCtx.lineWidth = 10;
       wCtx.strokeRect(0, 0, 512, 256);
@@ -708,6 +656,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       wCtx.moveTo(0, 180); wCtx.lineTo(512, 180);
       wCtx.stroke();
 
+      // Vertical panel dividers
       wCtx.strokeStyle = isCategoryCorridor ? themeColorHex : 'rgba(0, 255, 255, 0.3)';
       wCtx.globalAlpha = 0.6;
       wCtx.lineWidth = 4;
@@ -732,12 +681,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
 
     // Left Wall
     const wallLeft = new THREE.Mesh(wallGeo, wallMat);
-    wallLeft.position.set(corridorCenterX, 4.5, -8.1);
+    wallLeft.position.set(135, 4.5, -8.1);
     scene.add(wallLeft);
 
     // Right Wall
     const wallRight = new THREE.Mesh(wallGeo, wallMat);
-    wallRight.position.set(corridorCenterX, 4.5, 8.1);
+    wallRight.position.set(135, 4.5, 8.1);
     wallRight.rotation.y = Math.PI;
     scene.add(wallRight);
 
@@ -887,18 +836,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
         }
 
         const posterTex = new THREE.CanvasTexture(posterCanvas);
-        posterTex.generateMipmaps = true;
-        posterTex.minFilter = THREE.LinearMipmapLinearFilter;
-        posterTex.magFilter = THREE.LinearFilter;
-        posterTex.colorSpace = THREE.SRGBColorSpace;
         const posterGeo = new THREE.PlaneGeometry(width, height);
-        const posterMat = new THREE.MeshBasicMaterial({ map: posterTex, side: THREE.DoubleSide });
-
-        frameMesh.renderOrder = 1;
+        const posterMat = new THREE.MeshBasicMaterial({ map: posterTex });
 
         const posterMesh = new THREE.Mesh(posterGeo, posterMat);
-        posterMesh.position.set(0, 0, isOverhead ? 0.1 : 0.12);
-        posterMesh.renderOrder = 2;
+        posterMesh.position.set(0, 0, isOverhead ? 0.08 : (sp.side === 'left' ? 0.08 : -0.08));
+        if (!isOverhead && sp.side === 'right') posterMesh.rotation.y = Math.PI;
 
         posterMesh.userData = { type: 'sponsor_panel', panel: sp };
         panelGroup.add(posterMesh);
@@ -906,124 +849,78 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
         let backPosterMesh: THREE.Mesh | null = null;
         if (isOverhead) {
           backPosterMesh = new THREE.Mesh(posterGeo, posterMat);
-          backPosterMesh.position.set(0, 0, -0.1);
+          backPosterMesh.position.set(0, 0, -0.08);
           backPosterMesh.rotation.y = Math.PI;
-          backPosterMesh.renderOrder = 2;
           backPosterMesh.userData = { type: 'sponsor_panel', panel: sp };
           panelGroup.add(backPosterMesh);
         }
 
         // Load custom image if available
-        if (sp.imageUrl && sp.imageUrl.trim().length > 0) {
-          const rawUrl = sp.imageUrl.trim();
+        if (sp.imageUrl) {
+          const imgLoader = new THREE.TextureLoader();
+          imgLoader.load(
+            sp.imageUrl,
+            (loadedTex) => {
+              const mixCanvas = document.createElement('canvas');
+              mixCanvas.width = 2048;
+              mixCanvas.height = 1024;
+              const mCtx = mixCanvas.getContext('2d');
+              if (mCtx) {
+                mCtx.drawImage(loadedTex.image, 0, 0, 2048, 1024);
+                const grad = mCtx.createLinearGradient(0, 0, 0, 1024);
+                grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+                mCtx.fillStyle = grad;
+                mCtx.fillRect(0, 0, 2048, 1024);
 
-          const applyTextureToPoster = (texture: THREE.Texture, HTMLImgElement?: HTMLImageElement) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-            texture.needsUpdate = true;
+                mCtx.strokeStyle = isActive ? '#ffd700' : '#00ffff';
+                mCtx.lineWidth = 24;
+                mCtx.strokeRect(20, 20, 2008, 984);
 
-            let canvasSuccess = false;
-            const sourceImg = HTMLImgElement || (texture.image as HTMLImageElement);
+                mCtx.fillStyle = isActive ? '#ffd700' : '#00ffff';
+                mCtx.textAlign = 'left';
+                drawFittedText(
+                  mCtx,
+                  isActive ? `★ SPONSOR: ${sp.advertiserName.toUpperCase()} ★` : '📢 SPAZIO PUBBLICITARIO DISPONIBILE',
+                  60,
+                  100,
+                  52,
+                  1850
+                );
 
-            if (sourceImg && sourceImg.width > 0) {
-              try {
-                const mixCanvas = document.createElement('canvas');
-                mixCanvas.width = 2048;
-                mixCanvas.height = 1024;
-                const mCtx = mixCanvas.getContext('2d');
-                if (mCtx) {
-                  mCtx.drawImage(sourceImg, 0, 0, 2048, 1024);
-                  const grad = mCtx.createLinearGradient(0, 0, 0, 1024);
-                  grad.addColorStop(0, 'rgba(0,0,0,0.15)');
-                  grad.addColorStop(1, 'rgba(0,0,0,0.7)');
-                  mCtx.fillStyle = grad;
-                  mCtx.fillRect(0, 0, 2048, 1024);
+                mCtx.fillStyle = '#ffffff';
+                drawFittedText(mCtx, sp.title, 60, 240, 84, 1850);
 
-                  mCtx.strokeStyle = isActive ? '#ffd700' : '#00ffff';
-                  mCtx.lineWidth = 24;
-                  mCtx.strokeRect(20, 20, 2008, 984);
+                mCtx.fillStyle = '#38bdf8';
+                drawFittedText(mCtx, sp.tagline, 60, 360, 56, 1850);
 
-                  mCtx.fillStyle = isActive ? '#ffd700' : '#00ffff';
-                  mCtx.textAlign = 'left';
-                  drawFittedText(
-                    mCtx,
-                    isActive ? `★ SPONSOR: ${sp.advertiserName.toUpperCase()} ★` : '📢 SPAZIO PUBBLICITARIO DISPONIBILE',
-                    60,
-                    100,
-                    52,
-                    1850
-                  );
-
+                if (sp.youtubeEmbedUrl || sp.videoUrl || sp.mediaType === 'youtube') {
+                  mCtx.fillStyle = '#ff0000';
+                  mCtx.fillRect(60, 420, 680, 100);
                   mCtx.fillStyle = '#ffffff';
-                  drawFittedText(mCtx, sp.title, 60, 240, 84, 1850);
-
-                  mCtx.fillStyle = '#38bdf8';
-                  drawFittedText(mCtx, sp.tagline, 60, 360, 56, 1850);
-
-                  if (sp.youtubeEmbedUrl || sp.videoUrl || sp.mediaType === 'youtube') {
-                    mCtx.fillStyle = '#ff0000';
-                    mCtx.fillRect(60, 420, 680, 100);
-                    mCtx.fillStyle = '#ffffff';
-                    drawFittedText(mCtx, '▶ VIDEO YOUTUBE DISPONIBILE', 90, 488, 46, 620);
-                  }
-
-                  mCtx.fillStyle = isActive ? '#10b981' : '#facc15';
-                  mCtx.fillRect(60, 800, 880, 120);
-                  mCtx.fillStyle = '#000000';
-                  drawFittedText(mCtx, isActive ? '🔍 VISITA SPONSOR 3D' : '⚡ ACQUISTA MANIFESTO', 90, 875, 46, 820);
-
-                  mCtx.fillStyle = '#3b82f6';
-                  mCtx.fillRect(980, 800, 920, 120);
-                  mCtx.fillStyle = '#ffffff';
-                  drawFittedText(mCtx, '🛒 ACQUISTA ONLINE ESTERNO', 1010, 875, 46, 860);
-
-                  const finalTex = new THREE.CanvasTexture(mixCanvas);
-                  finalTex.generateMipmaps = true;
-                  finalTex.minFilter = THREE.LinearMipmapLinearFilter;
-                  finalTex.magFilter = THREE.LinearFilter;
-                  finalTex.colorSpace = THREE.SRGBColorSpace;
-                  finalTex.needsUpdate = true;
-                  const finalMat = new THREE.MeshBasicMaterial({ map: finalTex, side: THREE.DoubleSide });
-                  posterMesh.material = finalMat;
-                  if (backPosterMesh) backPosterMesh.material = finalMat;
-                  canvasSuccess = true;
+                  drawFittedText(mCtx, '▶ VIDEO YOUTUBE DISPONIBILE', 90, 488, 46, 620);
                 }
-              } catch {
-                canvasSuccess = false;
+
+                mCtx.fillStyle = isActive ? '#10b981' : '#facc15';
+                mCtx.fillRect(60, 800, 880, 120);
+                mCtx.fillStyle = '#000000';
+                drawFittedText(mCtx, isActive ? '🔍 VISITA SPONSOR 3D' : '⚡ ACQUISTA MANIFESTO', 90, 875, 46, 820);
+
+                mCtx.fillStyle = '#3b82f6';
+                mCtx.fillRect(980, 800, 920, 120);
+                mCtx.fillStyle = '#ffffff';
+                drawFittedText(mCtx, '🛒 ACQUISTA ONLINE ESTERNO', 1010, 875, 46, 860);
+
+                const finalMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(mixCanvas) });
+                posterMesh.material = finalMat;
+                if (backPosterMesh) {
+                  backPosterMesh.material = finalMat;
+                }
               }
-            }
-
-            if (!canvasSuccess) {
-              const directMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-              posterMesh.material = directMat;
-              if (backPosterMesh) backPosterMesh.material = directMat;
-            }
-          };
-
-          const isLocalOrData = rawUrl.startsWith('data:') || rawUrl.startsWith('blob:') || rawUrl.startsWith('/');
-          const proxyUrl = isLocalOrData
-            ? rawUrl
-            : `https://images.weserv.nl/?url=${encodeURIComponent(rawUrl)}`;
-
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const tex = new THREE.Texture(img);
-            applyTextureToPoster(tex, img);
-          };
-          img.onerror = () => {
-            // Fallback: load directly without crossOrigin
-            const directImg = new Image();
-            directImg.onload = () => {
-              const directTex = new THREE.Texture(directImg);
-              directTex.colorSpace = THREE.SRGBColorSpace;
-              directTex.needsUpdate = true;
-              const directMat = new THREE.MeshBasicMaterial({ map: directTex, side: THREE.DoubleSide });
-              posterMesh.material = directMat;
-              if (backPosterMesh) backPosterMesh.material = directMat;
-            };
-            directImg.src = rawUrl;
-          };
-          img.src = proxyUrl;
+            },
+            undefined,
+            () => {}
+          );
         }
 
         // Top & Bottom Neon Lamps
@@ -1045,12 +942,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
     // End Walls
     const endWallGeo = new THREE.PlaneGeometry(hallWidth, 9);
     const entranceWall = new THREE.Mesh(endWallGeo, wallMat);
-    entranceWall.position.set(entranceX - 1.5, 4.5, 0);
+    entranceWall.position.set(-25, 4.5, 0);
     entranceWall.rotation.y = Math.PI / 2;
     scene.add(entranceWall);
 
     const exitWall = new THREE.Mesh(endWallGeo, wallMat);
-    exitWall.position.set(exitX + 1.5, 4.5, 0);
+    exitWall.position.set(300, 4.5, 0);
     exitWall.rotation.y = -Math.PI / 2;
     scene.add(exitWall);
 
@@ -1175,9 +1072,9 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       return portalGroup;
     };
 
-    // Entrance Portal Panel
+    // Entrance Portal Panel (Start of Corridor X = -23.5)
     const entrancePortal = createEndPortalPanel(
-      entranceX + 1.5,
+      -23.5,
       Math.PI / 2,
       '◄ CORRIDOIO PRECEDENTE',
       prevTarget,
@@ -1185,9 +1082,9 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
     );
     scene.add(entrancePortal);
 
-    // Exit Portal Panel
+    // Exit Portal Panel (End of Corridor X = 298.5)
     const exitPortal = createEndPortalPanel(
-      exitX - 1.5,
+      298.5,
       -Math.PI / 2,
       'PROSSIMO CORRIDOIO ►',
       nextTarget,
@@ -1204,7 +1101,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       metalness: 0.0,
     });
     const ceilingMesh = new THREE.Mesh(ceilingGeo, ceilingMat);
-    ceilingMesh.position.set(corridorCenterX, 9.0, 0);
+    ceilingMesh.position.set(135, 9.0, 0);
     scene.add(ceilingMesh);
 
     // Create & add Avatar Rig
@@ -1234,7 +1131,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       const beamGeo = new THREE.BoxGeometry(corridorLength, 0.15, 0.3);
       const beamMat = new THREE.MeshBasicMaterial({ color: themeColor });
       const beamMesh = new THREE.Mesh(beamGeo, beamMat);
-      beamMesh.position.set(corridorCenterX, 8.9, zPos);
+      beamMesh.position.set(135, 8.9, zPos);
       scene.add(beamMesh);
     });
 
@@ -1296,13 +1193,13 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
     };
 
     if (isCategoryCorridor && selectedPavilion) {
-      billboardGroup.add(createBillboard(entranceX + corridorLength * 0.25, selectedPavilion.name.toUpperCase(), selectedPavilion.tagline, 0.1));
-      billboardGroup.add(createBillboard(entranceX + corridorLength * 0.55, `ESPOSITORI & BRAND 3D`, selectedPavilion.description.slice(0, 40) + '...', -0.1));
-      billboardGroup.add(createBillboard(entranceX + corridorLength * 0.82, `CASHBACK & OFFERTE`, 'Sconti Esclusivi Partner Meta-TV', 0.1));
+      billboardGroup.add(createBillboard(20, selectedPavilion.name.toUpperCase(), selectedPavilion.tagline, 0.1));
+      billboardGroup.add(createBillboard(100, `ESPOSITORI & BRAND 3D`, selectedPavilion.description.slice(0, 40) + '...', -0.1));
+      billboardGroup.add(createBillboard(180, `CASHBACK & OFFERTE`, 'Sconti Esclusivi Partner Meta-TV', 0.1));
     } else {
-      billboardGroup.add(createBillboard(entranceX + corridorLength * 0.20, 'META-TV SHOPPING', 'Sconti Esclusivi & Cashback', 0.2));
-      billboardGroup.add(createBillboard(entranceX + corridorLength * 0.50, 'FOOD & WINE FESTIVAL', 'Prodotti Tipici & Ristoranti Stellati', -0.2));
-      billboardGroup.add(createBillboard(entranceX + corridorLength * 0.80, 'TECH & GAMING VR', 'Visori Olografici & Domotica', 0.2));
+      billboardGroup.add(createBillboard(15, 'META-TV SHOPPING', 'Sconti Esclusivi & Cashback', 0.2));
+      billboardGroup.add(createBillboard(105, 'FOOD & WINE FESTIVAL', 'Prodotti Tipici & Ristoranti Stellati', -0.2));
+      billboardGroup.add(createBillboard(195, 'TECH & GAMING VR', 'Visori Olografici & Domotica', 0.2));
     }
     scene.add(billboardGroup);
 
@@ -2125,15 +2022,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
-
-      // Dynamic 3D Camera Zoom inside viewport
-      const currentFovVal = fovLevelRef.current || 100;
-      const targetZoom = Math.max(0.05, Math.min(2.0, currentFovVal / 100));
-      if (Math.abs(camera.zoom - targetZoom) > 0.001) {
-        camera.zoom = targetZoom;
-        camera.updateProjectionMatrix();
-      }
-
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
@@ -2144,13 +2032,12 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
 
       // Physics / Movement
       const keys = keysRef.current;
-      const currentWalkSpeed = walkSpeedRef.current || 1.0;
-      const speed = 8 * currentWalkSpeed * delta;
+      const speed = 8 * walkSpeed * delta;
       let isMoving = false;
 
-      if (isAutoTourRef.current) {
+      if (isAutoTour) {
         playerPosRef.current.x += speed * 0.6;
-        if (playerPosRef.current.x > exitX - 15) playerPosRef.current.x = entranceX + 15;
+        if (playerPosRef.current.x > 280) playerPosRef.current.x = -10;
         playerPosRef.current.z = Math.sin(time * 0.5) * 3;
         playerYawRef.current = -Math.PI / 2 + Math.sin(time * 0.3) * 0.2;
         isMoving = true;
@@ -2210,7 +2097,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
           }
         }
 
-        playerPosRef.current.x = Math.max(entranceX + 2, Math.min(exitX - 5, playerPosRef.current.x));
+        playerPosRef.current.x = Math.max(-23, Math.min(295, playerPosRef.current.x));
         playerPosRef.current.z = Math.max(-3.6, Math.min(3.6, playerPosRef.current.z));
 
         // Floor Navigation Indicators & Proximity Check
@@ -2366,7 +2253,8 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
         camera.lookAt(lookX, lookY, lookZ);
       } else {
         camera.position.copy(playerPosRef.current);
-        camera.rotation.set(playerPitchRef.current, playerYawRef.current, 0, 'YXZ');
+        const euler = new THREE.Euler(playerPitchRef.current, playerYawRef.current, 0, 'YXZ');
+        camera.quaternion.setFromEuler(euler);
       }
 
       if (onPositionUpdateRef.current) {
@@ -2390,32 +2278,19 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
         }
       }
 
-      // Throttle 2D Mini-Map state update: only update React state when position changes noticeably
-      if (time - lastMapUpdateRef.current > 0.4) {
+      // Throttle 2D Mini-Map state update every ~250ms for smooth UI performance
+      if (time - lastMapUpdateRef.current > 0.25) {
         lastMapUpdateRef.current = time;
-        const newX = playerPosRef.current.x;
-        const newZ = playerPosRef.current.z;
-        const newYaw = playerYawRef.current;
-
-        if (
-          Math.abs(newX - playerMapXRef.current) > 0.5 ||
-          Math.abs(newZ - playerMapZRef.current) > 0.5 ||
-          Math.abs(newYaw - playerMapYawRef.current) > 0.3
-        ) {
-          playerMapXRef.current = newX;
-          playerMapZRef.current = newZ;
-          playerMapYawRef.current = newYaw;
-          setPlayerMapX(newX);
-          setPlayerMapZ(newZ);
-          setPlayerMapYaw(newYaw);
-        }
+        setPlayerMapX(playerPosRef.current.x);
+        setPlayerMapZ(playerPosRef.current.z);
+        setPlayerMapYaw(playerYawRef.current);
       }
 
       renderer.getSize(renderSize);
       const curW = renderSize.x;
       const curH = renderSize.y;
 
-      if (isVRModeRef.current) {
+      if (isVRMode) {
         const halfW = curW / 2;
         renderer.setScissorTest(true);
 
@@ -2457,10 +2332,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
       document.removeEventListener('webkitfullscreenchange', handleResizeThrottled);
       document.removeEventListener('mozfullscreenchange', handleResizeThrottled);
       document.removeEventListener('MSFullscreenChange', handleResizeThrottled);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      canvasEl.removeEventListener('webglcontextlost', handleContextLost);
-      canvasEl.removeEventListener('webglcontextrestored', handleContextRestored);
-
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
@@ -2479,11 +2350,9 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
           }
         }
       });
-      floorTextureCache.forEach((tex) => tex.dispose());
-      floorTextureCache.clear();
-      // Keep WebGL context alive for subsequent canvas mounting without black screen
+      renderer.dispose();
     };
-  }, [pavilions, selectedPavilion, subcategoriesMap, isMobileLite]);
+  }, [pavilions, selectedPavilion, subcategoriesMap, walkSpeed, isVRMode, isAutoTour, avatarGender]);
 
   const handleRecenter = () => {
     playerPosRef.current.x = 0;
@@ -2493,8 +2362,7 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
     playerPitchRef.current = 0;
   };
 
-  // Riconoscimento distinto tra Atrio Generale (tutte le 20 porte) e Corridoio Padiglione Specifico
-  const activePav = selectedPavilion;
+  const activePav = selectedPavilion || (pavilions && pavilions.length > 0 ? pavilions[0] : null);
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden select-none bg-[#0a0c16]">
@@ -2517,14 +2385,14 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
               <div className="flex flex-col pr-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] sm:text-xs uppercase tracking-widest text-amber-400 font-bold">
-                    📍 {activePav ? 'Padiglione Attuale' : 'Atrio Principale'}
+                    📍 Corridoio Attuale
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-extrabold border border-amber-500/40 hidden sm:inline-block">
-                    {activePav ? 'Corridoio 3D' : 'Tutte le 20 Categorie'}
+                    Galleria 3D
                   </span>
                 </div>
                 <h2 className="text-xs sm:text-base font-black tracking-wide text-white drop-shadow-sm leading-tight max-w-[180px] sm:max-w-xs truncate">
-                  {activePav ? activePav.name : 'Galleria Centrale'}
+                  {activePav ? activePav.name : 'Scienza & Innovazione'}
                 </h2>
               </div>
 
@@ -2555,28 +2423,6 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
                   </button>
                 </div>
                 <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                  {/* Opzione Atrio Principale */}
-                  <button
-                    onClick={() => {
-                      onSelectPavilion(null as any);
-                      setIsCorridorSelectorOpen(false);
-                      playerPosRef.current.x = 0;
-                      playerPosRef.current.z = 0;
-                      playerYawRef.current = -Math.PI / 2;
-                    }}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-2 ${
-                      !activePav
-                        ? 'bg-amber-500/25 text-amber-200 border border-amber-500/70 shadow-lg'
-                        : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-white border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span className="w-3 h-3 rounded-full shrink-0 bg-yellow-400 shadow-sm" />
-                      <span className="truncate">🏛️ Atrio Generale (20 Porte)</span>
-                    </div>
-                    {!activePav && <span className="text-amber-400 text-[10px] font-black uppercase tracking-wider shrink-0 bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/40">Attivo</span>}
-                  </button>
-
                   {pavilions.map((pav) => {
                     const isSelected = activePav?.id === pav.id;
                     return (
@@ -2662,87 +2508,66 @@ export const MallCanvas3D: React.FC<MallCanvas3DProps & { fovLevel?: number }> =
         </div>
       )}
 
-      {/* On-screen Directional Arrow Controls for PC, Tablet & Mobile */}
-      <div className="absolute bottom-3 left-3 sm:bottom-5 sm:left-5 z-20 flex flex-col items-center pointer-events-auto select-none">
-        <div className="grid grid-cols-3 gap-1 sm:gap-1.5 bg-slate-950/85 p-2 sm:p-2.5 rounded-2xl border-2 border-amber-500/50 backdrop-blur-md shadow-[0_0_25px_rgba(0,0,0,0.8)]">
-          {/* Ruota Sguardo Sinistra */}
+      {/* On-screen controls for mobile (Compact & Translucent for high visibility) */}
+      <div className="absolute bottom-3 left-3 z-20 flex flex-col items-center pointer-events-auto sm:hidden select-none">
+        <div className="grid grid-cols-3 gap-1 bg-slate-950/80 p-2 rounded-2xl border border-amber-500/40 backdrop-blur-md shadow-2xl">
           <button
             onTouchStart={(e) => { e.preventDefault(); playerYawRef.current += 0.25; }}
-            onMouseDown={() => { playerYawRef.current += 0.25; }}
-            className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/20 hover:bg-amber-500/40 active:bg-amber-500/70 text-amber-300 font-bold rounded-xl border border-amber-500/40 flex items-center justify-center text-sm sm:text-base active:scale-95 transition-all cursor-pointer"
+            className="w-9 h-9 bg-amber-500/20 active:bg-amber-500/60 text-amber-300 font-bold rounded-lg border border-amber-500/40 flex items-center justify-center text-sm active:scale-95 transition-transform"
             aria-label="Ruota Sguardo a Sinistra"
-            title="Ruota Sguardo a Sinistra (↺)"
+            title="Ruota Sguardo a Sinistra"
           >
             ↺
           </button>
-
-          {/* Avanti / W */}
           <button
             onTouchStart={(e) => { e.preventDefault(); keysRef.current['w'] = true; }}
             onTouchEnd={(e) => { e.preventDefault(); keysRef.current['w'] = false; }}
             onTouchCancel={() => { keysRef.current['w'] = false; }}
             onMouseDown={() => (keysRef.current['w'] = true)}
             onMouseUp={() => (keysRef.current['w'] = false)}
-            onMouseLeave={() => (keysRef.current['w'] = false)}
-            className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/30 hover:bg-amber-500/50 active:bg-amber-500/80 text-amber-300 font-black rounded-xl border-2 border-amber-500/60 flex items-center justify-center text-sm sm:text-base active:scale-95 transition-all cursor-pointer shadow-md"
+            className="w-9 h-9 bg-amber-500/30 active:bg-amber-500/70 text-amber-300 font-black rounded-lg border border-amber-500/50 flex items-center justify-center text-sm active:scale-95 transition-transform"
             aria-label="Avanti"
-            title="Avanti (▲ / W)"
           >
             ▲
           </button>
-
-          {/* Ruota Sguardo Destra */}
           <button
             onTouchStart={(e) => { e.preventDefault(); playerYawRef.current -= 0.25; }}
-            onMouseDown={() => { playerYawRef.current -= 0.25; }}
-            className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/20 hover:bg-amber-500/40 active:bg-amber-500/70 text-amber-300 font-bold rounded-xl border border-amber-500/40 flex items-center justify-center text-sm sm:text-base active:scale-95 transition-all cursor-pointer"
+            className="w-9 h-9 bg-amber-500/20 active:bg-amber-500/60 text-amber-300 font-bold rounded-lg border border-amber-500/40 flex items-center justify-center text-sm active:scale-95 transition-transform"
             aria-label="Ruota Sguardo a Destra"
-            title="Ruota Sguardo a Destra (↻)"
+            title="Ruota Sguardo a Destra"
           >
             ↻
           </button>
-
-          {/* Spostati a Sinistra / A */}
           <button
             onTouchStart={(e) => { e.preventDefault(); keysRef.current['arrowleft'] = true; }}
             onTouchEnd={(e) => { e.preventDefault(); keysRef.current['arrowleft'] = false; }}
             onTouchCancel={() => { keysRef.current['arrowleft'] = false; }}
             onMouseDown={() => (keysRef.current['arrowleft'] = true)}
             onMouseUp={() => (keysRef.current['arrowleft'] = false)}
-            onMouseLeave={() => (keysRef.current['arrowleft'] = false)}
-            className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/20 hover:bg-amber-500/40 active:bg-amber-500/70 text-amber-300 font-bold rounded-xl border border-amber-500/40 flex items-center justify-center text-sm sm:text-base active:scale-95 transition-all cursor-pointer"
+            className="w-9 h-9 bg-amber-500/20 active:bg-amber-500/60 text-amber-300 font-bold rounded-lg border border-amber-500/40 flex items-center justify-center text-sm active:scale-95 transition-transform"
             aria-label="Spostati a Sinistra"
-            title="Spostati a Sinistra (◄ / A)"
           >
             ◄
           </button>
-
-          {/* Indietro / S */}
           <button
             onTouchStart={(e) => { e.preventDefault(); keysRef.current['s'] = true; }}
             onTouchEnd={(e) => { e.preventDefault(); keysRef.current['s'] = false; }}
             onTouchCancel={() => { keysRef.current['s'] = false; }}
             onMouseDown={() => (keysRef.current['s'] = true)}
             onMouseUp={() => (keysRef.current['s'] = false)}
-            onMouseLeave={() => (keysRef.current['s'] = false)}
-            className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/30 hover:bg-amber-500/50 active:bg-amber-500/80 text-amber-300 font-black rounded-xl border-2 border-amber-500/60 flex items-center justify-center text-sm sm:text-base active:scale-95 transition-all cursor-pointer shadow-md"
+            className="w-9 h-9 bg-amber-500/30 active:bg-amber-500/70 text-amber-300 font-black rounded-lg border border-amber-500/50 flex items-center justify-center text-sm active:scale-95 transition-transform"
             aria-label="Indietro"
-            title="Indietro (▼ / S)"
           >
             ▼
           </button>
-
-          {/* Spostati a Destra / D */}
           <button
             onTouchStart={(e) => { e.preventDefault(); keysRef.current['arrowright'] = true; }}
             onTouchEnd={(e) => { e.preventDefault(); keysRef.current['arrowright'] = false; }}
             onTouchCancel={() => { keysRef.current['arrowright'] = false; }}
             onMouseDown={() => (keysRef.current['arrowright'] = true)}
             onMouseUp={() => (keysRef.current['arrowright'] = false)}
-            onMouseLeave={() => (keysRef.current['arrowright'] = false)}
-            className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-500/20 hover:bg-amber-500/40 active:bg-amber-500/70 text-amber-300 font-bold rounded-xl border border-amber-500/40 flex items-center justify-center text-sm sm:text-base active:scale-95 transition-all cursor-pointer"
+            className="w-9 h-9 bg-amber-500/20 active:bg-amber-500/60 text-amber-300 font-bold rounded-lg border border-amber-500/40 flex items-center justify-center text-sm active:scale-95 transition-transform"
             aria-label="Spostati a Destra"
-            title="Spostati a Destra (► / D)"
           >
             ►
           </button>

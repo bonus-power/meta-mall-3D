@@ -27,6 +27,7 @@ import {
   DoorOpen,
   Tag,
   FolderPlus,
+  Upload,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -212,6 +213,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingSponsor, setEditingSponsor] = useState<SponsorPanel | null>(null);
   const [showAddSponsorModal, setShowAddSponsorModal] = useState(false);
   const [sponsorFilter, setSponsorFilter] = useState<'all' | 'active' | 'available'>('all');
+  const [corridorFilter, setCorridorFilter] = useState<string>('all');
   const [newSponsor, setNewSponsor] = useState<Partial<SponsorPanel>>({
     title: 'SPAZIO SPONSOR PARETE DISPONIBILE',
     advertiserName: 'Spazio Libero per Affitto',
@@ -224,6 +226,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     status: 'available',
     pricePerMonth: '€299 / mese',
     category: 'Standard Sponsor',
+    corridorIds: ['all'],
   });
 
   // Collaborator state
@@ -934,32 +937,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Action Header & Filters */}
           <div className="flex flex-wrap items-center justify-between gap-4 bg-[#080808] p-4 rounded-2xl border border-white/10">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtra Spazi:</span>
-              <button
-                onClick={() => setSponsorFilter('all')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  sponsorFilter === 'all' ? 'bg-cyan-500 text-black' : 'bg-white/5 text-slate-400 hover:text-white'
-                }`}
-              >
-                Tutti ({sponsorPanels.length})
-              </button>
-              <button
-                onClick={() => setSponsorFilter('active')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  sponsorFilter === 'active' ? 'bg-emerald-500 text-black' : 'bg-white/5 text-slate-400 hover:text-white'
-                }`}
-              >
-                Attivi ({sponsorPanels.filter((p) => p.status === 'active').length})
-              </button>
-              <button
-                onClick={() => setSponsorFilter('available')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  sponsorFilter === 'available' ? 'bg-yellow-500 text-black' : 'bg-white/5 text-slate-400 hover:text-white'
-                }`}
-              >
-                Disponibili ({sponsorPanels.filter((p) => p.status === 'available').length})
-              </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtra Spazi:</span>
+                <button
+                  onClick={() => setSponsorFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    sponsorFilter === 'all' ? 'bg-cyan-500 text-black' : 'bg-white/5 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Tutti ({sponsorPanels.length})
+                </button>
+                <button
+                  onClick={() => setSponsorFilter('active')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    sponsorFilter === 'active' ? 'bg-emerald-500 text-black' : 'bg-white/5 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Attivi ({sponsorPanels.filter((p) => p.status === 'active').length})
+                </button>
+                <button
+                  onClick={() => setSponsorFilter('available')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    sponsorFilter === 'available' ? 'bg-yellow-500 text-black' : 'bg-white/5 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Disponibili ({sponsorPanels.filter((p) => p.status === 'available').length})
+                </button>
+              </div>
+
+              {/* Corridor Dropdown Filter */}
+              <div className="flex items-center gap-2 pl-2 border-l border-white/10">
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-amber-400" /> Corridoio:
+                </span>
+                <select
+                  value={corridorFilter}
+                  onChange={(e) => setCorridorFilter(e.target.value)}
+                  className="bg-black border border-amber-500/40 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-bold focus:outline-none"
+                >
+                  <option value="all">🌐 Tutti i Corridoi</option>
+                  <option value="main">🏛️ Corridoio Generale Principale</option>
+                  {pavilions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      📍 Padiglione {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -985,6 +1010,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sponsorPanels
               .filter((p) => sponsorFilter === 'all' || p.status === sponsorFilter)
+              .filter((p) => {
+                if (corridorFilter === 'all') return true;
+                if (!p.corridorIds || p.corridorIds.length === 0 || p.corridorIds.includes('all')) return true;
+                return p.corridorIds.includes(corridorFilter);
+              })
               .map((panel) => (
                 <div
                   key={panel.id}
@@ -1022,6 +1052,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                       <h4 className="text-white font-bold text-sm line-clamp-1">{panel.title}</h4>
                       <p className="text-slate-300 text-xs line-clamp-2">{panel.tagline}</p>
+
+                      {/* Corridor Target Badges */}
+                      <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-white/5">
+                        <span className="text-[10px] font-bold text-amber-300 uppercase">Corridoi:</span>
+                        {!panel.corridorIds || panel.corridorIds.length === 0 || panel.corridorIds.includes('all') ? (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            🌐 Tutti i Corridoi
+                          </span>
+                        ) : (
+                          panel.corridorIds.map((cId) => {
+                            const pav = pavilions.find((p) => p.id === cId);
+                            const label = cId === 'main' ? '🏛️ Generale' : pav ? `📍 ${pav.name}` : cId;
+                            return (
+                              <span
+                                key={cId}
+                                className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                              >
+                                {label}
+                              </span>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -1172,13 +1225,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div className="col-span-2">
-                <label className="block text-xs text-slate-300 mb-1">URL Immagine Manifesto</label>
-                <input
-                  type="text"
-                  value={newSponsor.imageUrl}
-                  onChange={(e) => setNewSponsor({ ...newSponsor, imageUrl: e.target.value })}
-                  className="w-full bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
-                />
+                <label className="block text-xs text-slate-300 mb-1">
+                  URL Immagine Manifesto o Carica Foto Locale dal PC/Telefono
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newSponsor.imageUrl}
+                    onChange={(e) => setNewSponsor({ ...newSponsor, imageUrl: e.target.value })}
+                    placeholder="https://... oppure carica da file"
+                    className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                  />
+                  <label className="cursor-pointer px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-yellow-300 border border-yellow-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0">
+                    <Upload className="w-4 h-4" />
+                    <span>Carica Foto</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            if (evt.target?.result) {
+                              setNewSponsor({ ...newSponsor, imageUrl: evt.target.result as string });
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1202,6 +1281,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onChange={(e) => setNewSponsor({ ...newSponsor, pricePerMonth: e.target.value })}
                     className="w-full bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
                   />
+                </div>
+              </div>
+
+              {/* Selection of Corridor Destinations */}
+              <div className="col-span-2 space-y-2 border border-amber-500/30 bg-black/60 p-3.5 rounded-2xl">
+                <label className="block text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Building className="w-4 h-4 text-amber-400" />
+                  Selezione Corridoi di Destinazione Manifesto 3D
+                </label>
+                <p className="text-[11px] text-slate-400">
+                  Seleziona in quali corridoi del centro commerciale mostrare questo manifesto.
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-1 max-h-40 overflow-y-auto pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setNewSponsor({ ...newSponsor, corridorIds: ['all'] })}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+                      !newSponsor.corridorIds || newSponsor.corridorIds.includes('all')
+                        ? 'bg-amber-400 text-black border-amber-300 shadow-md scale-105'
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:border-amber-400/50'
+                    }`}
+                  >
+                    🌐 Tutti i Corridoi
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = (newSponsor.corridorIds || []).filter((x) => x !== 'all');
+                      const next = cur.includes('main') ? cur.filter((x) => x !== 'main') : [...cur, 'main'];
+                      setNewSponsor({ ...newSponsor, corridorIds: next.length === 0 ? ['all'] : next });
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                      newSponsor.corridorIds &&
+                      !newSponsor.corridorIds.includes('all') &&
+                      newSponsor.corridorIds.includes('main')
+                        ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold shadow-md scale-105'
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:border-cyan-400/50'
+                    }`}
+                  >
+                    🏛️ Corridoio Generale
+                  </button>
+
+                  {pavilions.map((pav) => {
+                    const isSelected =
+                      newSponsor.corridorIds &&
+                      !newSponsor.corridorIds.includes('all') &&
+                      newSponsor.corridorIds.includes(pav.id);
+                    return (
+                      <button
+                        key={pav.id}
+                        type="button"
+                        onClick={() => {
+                          const cur = (newSponsor.corridorIds || []).filter((x) => x !== 'all');
+                          const next = cur.includes(pav.id) ? cur.filter((x) => x !== pav.id) : [...cur, pav.id];
+                          setNewSponsor({ ...newSponsor, corridorIds: next.length === 0 ? ['all'] : next });
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-emerald-400 text-black border-emerald-300 font-extrabold shadow-md scale-105'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pav.color }} />
+                        {pav.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1358,13 +1506,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1">URL Immagine Poster</label>
-                <input
-                  type="text"
-                  value={editingSponsor.imageUrl}
-                  onChange={(e) => setEditingSponsor({ ...editingSponsor, imageUrl: e.target.value })}
-                  className="w-full bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
-                />
+                <label className="block text-xs text-slate-300 mb-1">
+                  URL Immagine Poster o Carica Foto Locale
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editingSponsor.imageUrl}
+                    onChange={(e) => setEditingSponsor({ ...editingSponsor, imageUrl: e.target.value })}
+                    placeholder="https://... oppure carica file"
+                    className="flex-1 bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                  />
+                  <label className="cursor-pointer px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-yellow-300 border border-yellow-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0">
+                    <Upload className="w-4 h-4" />
+                    <span>Carica</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            if (evt.target?.result) {
+                              setEditingSponsor({ ...editingSponsor, imageUrl: evt.target.result as string });
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -1403,6 +1577,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     onChange={(e) => setEditingSponsor({ ...editingSponsor, pricePerMonth: e.target.value })}
                     className="w-full bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
                   />
+                </div>
+              </div>
+
+              {/* Selection of Corridor Destinations */}
+              <div className="space-y-2 border border-cyan-500/30 bg-black/60 p-3.5 rounded-2xl">
+                <label className="block text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Building className="w-4 h-4 text-cyan-400" />
+                  Selezione Corridoi di Destinazione Manifesto 3D
+                </label>
+                <p className="text-[11px] text-slate-400">
+                  Scegli se mostrare questo manifesto su Tutti i Corridoi oppure su corridoi specifici.
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-1 max-h-40 overflow-y-auto pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingSponsor({ ...editingSponsor, corridorIds: ['all'] })}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+                      !editingSponsor.corridorIds || editingSponsor.corridorIds.includes('all')
+                        ? 'bg-amber-400 text-black border-amber-300 shadow-md scale-105'
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:border-amber-400/50'
+                    }`}
+                  >
+                    🌐 Tutti i Corridoi
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cur = (editingSponsor.corridorIds || []).filter((x) => x !== 'all');
+                      const next = cur.includes('main') ? cur.filter((x) => x !== 'main') : [...cur, 'main'];
+                      setEditingSponsor({ ...editingSponsor, corridorIds: next.length === 0 ? ['all'] : next });
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                      editingSponsor.corridorIds &&
+                      !editingSponsor.corridorIds.includes('all') &&
+                      editingSponsor.corridorIds.includes('main')
+                        ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold shadow-md scale-105'
+                        : 'bg-white/5 text-slate-300 border-white/10 hover:border-cyan-400/50'
+                    }`}
+                  >
+                    🏛️ Corridoio Generale
+                  </button>
+
+                  {pavilions.map((pav) => {
+                    const isSelected =
+                      editingSponsor.corridorIds &&
+                      !editingSponsor.corridorIds.includes('all') &&
+                      editingSponsor.corridorIds.includes(pav.id);
+                    return (
+                      <button
+                        key={pav.id}
+                        type="button"
+                        onClick={() => {
+                          const cur = (editingSponsor.corridorIds || []).filter((x) => x !== 'all');
+                          const next = cur.includes(pav.id) ? cur.filter((x) => x !== pav.id) : [...cur, pav.id];
+                          setEditingSponsor({ ...editingSponsor, corridorIds: next.length === 0 ? ['all'] : next });
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-emerald-400 text-black border-emerald-300 font-extrabold shadow-md scale-105'
+                            : 'bg-white/5 text-slate-300 border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pav.color }} />
+                        {pav.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1615,13 +1858,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   <div>
-                    <label className="text-slate-300 font-bold block mb-1">Quantità Punti Bonus-Power da Assegnare</label>
+                    <label className="text-slate-300 font-bold block mb-1">Quantità Punti Bonus-Power (es. 500 per aggiungere, -500 per sottrarre)</label>
                     <input
                       type="number"
                       value={creditAmount}
                       onChange={(e) => setCreditAmount(Number(e.target.value))}
                       className="w-full bg-black border border-white/15 p-2.5 rounded-xl text-yellow-300 font-bold"
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      💡 Inserisci un numero positivo per accreditare o un numero negativo (es. -1250) per togliere punti.
+                    </p>
                   </div>
 
                   {creditSuccess && (
@@ -1630,23 +1876,44 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                   )}
 
-                  <button
-                    onClick={() => {
-                      if (!creditEmail) {
-                        alert('Inserisci un indirizzo email valido.');
-                        return;
-                      }
-                      if (onCreditUserPoints) {
-                        onCreditUserPoints(creditEmail, creditAmount);
-                      }
-                      setCreditSuccess(`Inviati +${creditAmount} Punti Bonus-Power a ${creditEmail}!`);
-                      setTimeout(() => setCreditSuccess(''), 3000);
-                    }}
-                    className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-200 text-black font-extrabold uppercase text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                  >
-                    <Zap className="w-4 h-4 fill-black" />
-                    <span>Accredita Punti a Cliente</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        if (!creditEmail) {
+                          alert('Inserisci un indirizzo email valido.');
+                          return;
+                        }
+                        const amountToAdd = Math.abs(creditAmount);
+                        if (onCreditUserPoints) {
+                          onCreditUserPoints(creditEmail, amountToAdd);
+                        }
+                        setCreditSuccess(`Accreditati +${amountToAdd} Punti a ${creditEmail}!`);
+                        setTimeout(() => setCreditSuccess(''), 3000);
+                      }}
+                      className="py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-200 text-black font-extrabold uppercase text-[11px] rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-black" />
+                      <span>+ Accredita</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (!creditEmail) {
+                          alert('Inserisci un indirizzo email valido.');
+                          return;
+                        }
+                        const amountToDeduct = -Math.abs(creditAmount);
+                        if (onCreditUserPoints) {
+                          onCreditUserPoints(creditEmail, amountToDeduct);
+                        }
+                        setCreditSuccess(`Detratti ${amountToDeduct} Punti a ${creditEmail}!`);
+                        setTimeout(() => setCreditSuccess(''), 3000);
+                      }}
+                      className="py-2.5 bg-red-600/80 hover:bg-red-500 text-white font-extrabold uppercase text-[11px] rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 border border-red-400/40 cursor-pointer"
+                    >
+                      <span>- Detrai Punti</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

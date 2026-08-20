@@ -149,6 +149,17 @@ export const SUBCATEGORIES_BY_PAVILION: Record<string, SubCategory[]> = {
       description: 'Mangia Sano — Frutta, verdura biologica, formaggi e prodotti a filiera corta.',
       tagline: 'Nuova Sottocategoria 3D',
     },
+    {
+      id: 'sub-food-7',
+      name: 'Pub & Birrerie Artigianali',
+      pavilionId: 'food',
+      color: '#FF7F50',
+      glowColor: 'rgba(255, 127, 80, 0.8)',
+      iconName: 'Beer',
+      bannerImage: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80',
+      description: 'Bevi e divertiti — Tutti i pub e birrerie artigianali dove gustare le migliori birre e cocktail.',
+      tagline: 'Pub, Birre & Cocktail 3D',
+    },
   ],
 
   beauty: [

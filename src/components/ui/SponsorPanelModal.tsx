@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { SponsorPanel, PointsRuleConfig } from '../../types';
+import { SponsorPanel, PointsRuleConfig, Pavilion } from '../../types';
+import { GIFT_CARDS_BANNER_SVG } from '../../assets/giftCardsBanner';
 import {
   X,
   ExternalLink,
@@ -19,6 +20,7 @@ import {
   Video,
   Play,
   Tv,
+  Upload,
 } from 'lucide-react';
 
 function parseYouTubeEmbedUrl(url?: string): string | null {
@@ -37,6 +39,7 @@ function parseYouTubeEmbedUrl(url?: string): string | null {
 
 interface SponsorPanelModalProps {
   panel: SponsorPanel;
+  pavilions?: Pavilion[];
   onClose: () => void;
   onStepBack?: () => void;
   onUpdatePanel: (updated: SponsorPanel) => void;
@@ -46,6 +49,7 @@ interface SponsorPanelModalProps {
 
 export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
   panel,
+  pavilions = [],
   onClose,
   onStepBack,
   onUpdatePanel,
@@ -162,6 +166,7 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
   };
 
   const presetImages = [
+    { label: '🎁 Carte Regalo Multi-Brand', url: GIFT_CARDS_BANNER_SVG },
     { label: 'Moda & Lusso', url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=80' },
     { label: 'Auto & Motori', url: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=800&q=80' },
     { label: 'Tecnologia', url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80' },
@@ -590,15 +595,38 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
 
                 <div className="md:col-span-2">
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    URL Immagine Manifesto Pubblicitario
+                    URL Immagine Manifesto Pubblicitario o Carica File Locale
                   </label>
-                  <input
-                    type="text"
-                    value={purchaseForm.imageUrl}
-                    onChange={(e) => setPurchaseForm({ ...purchaseForm, imageUrl: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-yellow-400 focus:outline-none"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={purchaseForm.imageUrl}
+                      onChange={(e) => setPurchaseForm({ ...purchaseForm, imageUrl: e.target.value })}
+                      placeholder="https://... oppure carica da PC"
+                      className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-yellow-400 focus:outline-none"
+                    />
+                    <label className="cursor-pointer px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-yellow-300 border border-yellow-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0">
+                      <Upload className="w-4 h-4" />
+                      <span>Carica File</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setPurchaseForm({ ...purchaseForm, imageUrl: evt.target.result as string });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
 
                   {/* Preset Image Selectors */}
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -758,13 +786,39 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-xs text-slate-300 mb-1">Image URL</label>
-                  <input
-                    type="text"
-                    value={editForm.imageUrl}
-                    onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
-                  />
+                  <label className="block text-xs text-slate-300 mb-1">
+                    URL Immagine Poster o Carica File Locale da PC/Telefono
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editForm.imageUrl}
+                      onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                      placeholder="https://... oppure carica file"
+                      className="flex-1 bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                    />
+                    <label className="cursor-pointer px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-yellow-300 border border-yellow-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0">
+                      <Upload className="w-4 h-4" />
+                      <span>Carica File</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setEditForm({ ...editForm, imageUrl: evt.target.result as string });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 <div className="col-span-2">
@@ -786,6 +840,74 @@ export const SponsorPanelModal: React.FC<SponsorPanelModalProps> = ({
                     placeholder="https://meta-tv.net/checkout/sponsor"
                     className="w-full bg-black/50 border border-emerald-500/40 rounded-xl px-3 py-2 text-sm text-white"
                   />
+                </div>
+
+                {/* Corridor Selection */}
+                <div className="col-span-2 space-y-1.5 pt-2 border-t border-white/10">
+                  <label className="block text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                    <Building className="w-4 h-4 text-amber-400" />
+                    Visibilità nei Corridoi 3D
+                  </label>
+                  <p className="text-[11px] text-slate-400">
+                    Seleziona se mostrare questo manifesto in Tutti i Corridoi oppure solo nei corridoi scelti.
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, corridorIds: ['all'] })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+                        !editForm.corridorIds || editForm.corridorIds.includes('all')
+                          ? 'bg-amber-400 text-black border-amber-300 shadow-md scale-105'
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:border-amber-400/50'
+                      }`}
+                    >
+                      🌐 Tutti i Corridoi
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = (editForm.corridorIds || []).filter((x) => x !== 'all');
+                        const next = cur.includes('main') ? cur.filter((x) => x !== 'main') : [...cur, 'main'];
+                        setEditForm({ ...editForm, corridorIds: next.length === 0 ? ['all'] : next });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                        editForm.corridorIds &&
+                        !editForm.corridorIds.includes('all') &&
+                        editForm.corridorIds.includes('main')
+                          ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold shadow-md scale-105'
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:border-cyan-400/50'
+                      }`}
+                    >
+                      🏛️ Corridoio Generale
+                    </button>
+
+                    {pavilions.map((pav) => {
+                      const isSelected =
+                        editForm.corridorIds &&
+                        !editForm.corridorIds.includes('all') &&
+                        editForm.corridorIds.includes(pav.id);
+                      return (
+                        <button
+                          key={pav.id}
+                          type="button"
+                          onClick={() => {
+                            const cur = (editForm.corridorIds || []).filter((x) => x !== 'all');
+                            const next = cur.includes(pav.id) ? cur.filter((x) => x !== pav.id) : [...cur, pav.id];
+                            setEditForm({ ...editForm, corridorIds: next.length === 0 ? ['all'] : next });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-emerald-400 text-black border-emerald-300 font-extrabold shadow-md scale-105'
+                              : 'bg-white/5 text-slate-300 border-white/10 hover:border-white/30'
+                          }`}
+                        >
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: pav.color }} />
+                          {pav.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 

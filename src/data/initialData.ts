@@ -1,4 +1,7 @@
 import { Pavilion, Company, Panorama360, LiveEvent, Badge, SponsorPanel, AdminCollaborator } from '../types';
+import { GIFT_CARDS_BANNER_SVG } from '../assets/giftCardsBanner';
+
+export const GIFT_CARDS_IMAGE_URL = GIFT_CARDS_BANNER_SVG;
 
 export const INITIAL_PAVILIONS: Pavilion[] = [
   {
@@ -847,21 +850,41 @@ export const INITIAL_BADGES: Badge[] = [
 
 export const INITIAL_SPONSOR_PANELS: SponsorPanel[] = [
   {
+    id: 'sp-giftcards-overhead',
+    title: 'Buoni Regalo & Carte Regalo 3D',
+    advertiserName: 'Galleria Meta-TV Rewards',
+    imageUrl: GIFT_CARDS_BANNER_SVG,
+    mediaType: 'image',
+    tagline: 'Amazon, Conad, Esselunga, Zalando, Decathlon, Unieuro & ENI',
+    description: 'Converti i tuoi Punti Meta-TV o acquista direttamente le Carte Regalo ed i Buoni Spesa per i migliori marchi e supermercati d\'Italia.',
+    websiteUrl: 'https://meta-tv.net/carte-regalo',
+    externalPurchaseUrl: 'https://meta-tv.net/carte-regalo',
+    positionX: 0,
+    side: 'overhead',
+    isOverhead: true,
+    status: 'active',
+    pricePerMonth: '€999 / mese',
+    category: 'Platinum Partner',
+    corridorIds: ['all'],
+    pointsReward: 200,
+  },
+  {
     id: 'sp-1',
-    title: 'Gucci High Fashion 3D',
-    advertiserName: 'Gucci S.p.A.',
-    imageUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=80',
-    youtubeEmbedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    mediaType: 'youtube',
-    tagline: 'Nuova Collezione Primavera in Galleria Meta-TV',
-    description: 'Guarda il video della sfilata 3D e scopri i capi esclusivi con sconti riservati ai visitatori.',
-    websiteUrl: 'https://gucci.com',
+    title: 'Carte Regalo Multi-Brand Meta-TV',
+    advertiserName: 'Buoni Spesa & Gift Cards Italia',
+    imageUrl: GIFT_CARDS_BANNER_SVG,
+    mediaType: 'image',
+    tagline: 'Amazon, Conad, Esselunga, Zalando, Decathlon, Unieuro, ENI, Pam',
+    description: 'Tutti i tuoi brand preferiti in un’unica soluzione: acquista con sconti esclusivi o riscatta coi punti accumulati esplorando i padiglioni 3D.',
+    websiteUrl: 'https://meta-tv.net/carte-regalo',
+    externalPurchaseUrl: 'https://meta-tv.net/carte-regalo',
     positionX: -10,
     side: 'left',
     status: 'active',
     pricePerMonth: '€499 / mese',
     category: 'Gold Sponsor',
-    pointsReward: 100,
+    corridorIds: ['all'],
+    pointsReward: 150,
   },
   {
     id: 'sp-2',

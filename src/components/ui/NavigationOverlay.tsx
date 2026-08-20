@@ -17,6 +17,7 @@ import {
   Maximize2,
   Minimize2,
   ArrowLeft,
+  ArrowRight,
   List,
   UserCheck,
   UserPlus,
@@ -26,6 +27,8 @@ import {
   Radio,
   ChevronDown,
   LogOut,
+  Smartphone,
+  Menu,
 } from 'lucide-react';
 import { PointsRuleConfig } from '../../types';
 
@@ -46,13 +49,15 @@ interface NavigationOverlayProps {
   onOpenGamification: () => void;
   onOpenAuth?: () => void;
   onToggleChatbot: () => void;
+  onToggleMobilePreview?: () => void;
+  isMobilePreview?: boolean;
   userCoins?: number;
   currentUser?: UserProfile;
   pointsRules?: PointsRuleConfig;
   onEarnPoints?: (points: number, title: string) => void;
 }
 
-export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
+export const NavigationOverlay: React.FC<NavigationOverlayProps> = React.memo(({
   currentMode,
   onModeChange,
   pavilions,
@@ -69,6 +74,8 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
   onOpenGamification,
   onOpenAuth,
   onToggleChatbot,
+  onToggleMobilePreview,
+  isMobilePreview = false,
   userCoins = 1250,
   currentUser,
   pointsRules = {
@@ -235,15 +242,13 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
       {/* Fullscreen Mode Minimalist HUD Bar - ONLY controls shown in Fullscreen */}
       {isFullscreen ? (
         <div className="fixed top-3 left-3 sm:left-6 z-[99999] flex items-center gap-2 sm:gap-3 bg-slate-950/90 backdrop-blur-xl p-2 sm:p-2.5 rounded-2xl border-2 border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.35)] select-none max-w-[calc(100vw-24px)] overflow-x-auto no-scrollbar">
-          {/* 1. Esci Fullscreen */}
+          {/* 1. Esci Fullscreen (Solo icona) */}
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm uppercase tracking-wider shadow-md hover:scale-105 active:scale-95 transition-all border border-amber-300 cursor-pointer shrink-0"
+            className="flex items-center justify-center p-2 sm:p-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all border border-amber-300 cursor-pointer shrink-0"
             title="Esci da Schermo Intero"
           >
-            <Minimize2 className="w-4 h-4 text-slate-950" />
-            <span className="hidden xs:inline">Esci Fullscreen</span>
-            <span className="xs:hidden">Esci</span>
+            <Minimize2 className="w-4 h-4 sm:w-5 sm:h-5 text-slate-950" />
           </button>
 
           {/* 2. Chiudi App / Torna al Cellulare */}
@@ -299,67 +304,53 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
             <span className="hidden sm:inline">Recentra Visuale</span>
             <span className="sm:hidden">Recentra</span>
           </button>
+
+          {/* 6. Indicatore Padiglione Attivo in Fullscreen + Torna ad Atrio */}
+          {selectedPavilion && (
+            <>
+              <div className="h-5 w-px bg-white/20 shrink-0" />
+              <div className="flex items-center gap-1.5 shrink-0 bg-yellow-500/20 border border-yellow-500/50 rounded-xl px-2.5 py-1 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedPavilion.color }} />
+                <span className="font-bold text-yellow-300 max-w-[120px] truncate">{selectedPavilion.name}</span>
+                <button
+                  onClick={() => onSelectPavilion(null)}
+                  className="ml-1 px-1.5 py-0.5 bg-yellow-500 hover:bg-yellow-400 text-black text-[10px] font-black rounded uppercase cursor-pointer"
+                  title="Torna all'Atrio con tutte le 20 Categorie"
+                >
+                  Esci
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         /* Standard Header in Normal View Mode */
-        <header className="absolute top-0 left-0 right-0 z-[9999] bg-black/95 backdrop-blur-md border-b border-white/10 px-2.5 py-1.5 sm:px-6 sm:py-3 flex items-center justify-between gap-2 sm:gap-4 max-w-full overflow-visible shadow-xl">
-          {/* Brand Logo */}
+        <header className="absolute top-0 left-0 right-0 z-[9999] bg-black/95 backdrop-blur-md border-b border-white/10 px-3 py-2 sm:px-6 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 max-w-full overflow-visible shadow-xl">
+          {/* Brand Logo & Name (Mobile: Icon only | PC: Full Brand Text) */}
           <div 
-            className="flex items-center gap-2 sm:gap-3.5 cursor-pointer shrink-0 hover:opacity-90 transition-opacity" 
+            className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer shrink-0 hover:opacity-90 transition-opacity" 
             onClick={() => onModeChange('corridor')}
             title="Torna al corridoio iniziale (Home)"
           >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-tr from-yellow-600 via-yellow-400 to-yellow-200 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.4)]">
-              <span className="text-black font-black text-base sm:text-xl italic font-serif">M</span>
+            {/* Logo Icon (Immagine 1) */}
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-tr from-yellow-600 via-yellow-400 to-yellow-200 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.4)] shrink-0">
+              <span className="text-black font-black text-lg sm:text-xl italic font-serif">M</span>
             </div>
-            <div>
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <h1 className="text-white font-light text-xs sm:text-base tracking-[0.15em] sm:tracking-[0.2em] uppercase">
-                  META<span className="font-bold text-yellow-500">TV</span> <span className="text-white/40 font-extralight hidden md:inline">| IMMERSIVE MALL</span>
+            {/* Brand Text for PC / Tablet (Immagine 2) */}
+            <div className="hidden sm:block">
+              <div className="flex items-center gap-2">
+                <h1 className="text-white font-light text-sm sm:text-base tracking-[0.15em] uppercase">
+                  META<span className="font-bold text-yellow-500">TV</span> <span className="text-white/40 font-extralight">| IMMERSIVE MALL</span>
                 </h1>
-                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold tracking-widest uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 hidden xs:inline">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-widest uppercase bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
                   GLOBAL 3D
                 </span>
               </div>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest hidden sm:block">Centro Commerciale Virtuale Immersivo</p>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest">Centro Commerciale Virtuale Immersivo</p>
             </div>
           </div>
 
-          {/* View Mode Dropdown Menu */}
-          <div className="relative flex items-center">
-            <select
-              value={currentMode}
-              onChange={(e) => onModeChange(e.target.value as NavMode)}
-              className="bg-slate-900/90 text-yellow-400 font-extrabold text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl border-2 border-yellow-500/60 shadow-[0_0_15px_rgba(255,215,0,0.25)] focus:outline-none focus:border-yellow-400 cursor-pointer appearance-none pr-8 tracking-wider uppercase transition-all hover:bg-slate-800"
-              title="Seleziona la modalità di navigazione"
-            >
-              <option value="corridor" className="bg-slate-900 text-yellow-400 font-bold">
-                📍 Corridoi 3D (Galleria)
-              </option>
-              <option value="globe" className="bg-slate-900 text-yellow-400 font-bold">
-                🌍 Mappa Globale 3D
-              </option>
-              <option value="panorama" className="bg-slate-900 text-yellow-400 font-bold">
-                🖼️ Panorami 360°
-              </option>
-              <option value="live-events" className="bg-slate-900 text-yellow-400 font-bold">
-                📺 Eventi Live & TV
-              </option>
-              {currentMode === 'business' && (
-                <option value="business" className="bg-slate-900 text-amber-400 font-bold">
-                  🏢 Area Aziende
-                </option>
-              )}
-              {currentMode === 'admin' && (
-                <option value="admin" className="bg-slate-900 text-red-400 font-bold">
-                  🛡️ Area Admin
-                </option>
-              )}
-            </select>
-            <ChevronDown className="w-4 h-4 text-yellow-400 absolute right-2.5 pointer-events-none" />
-          </div>
-
-          {/* Right Tools - Unified Master Dropdown for PC & Mobile */}
+          {/* Right Header Buttons: Schermo Intero (Icona Soltanto - Immagine 3) & Menu Hamburger */}
           <div className="flex items-center gap-2 shrink-0">
             {mediaFeedback && (
               <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100000] bg-yellow-500 text-black border-2 border-amber-300 px-4 py-2 rounded-2xl font-black text-xs shadow-2xl animate-bounce flex items-center gap-2">
@@ -368,63 +359,98 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
               </div>
             )}
 
-            {/* Schermo Intero (Fullscreen Direct Button) */}
+            {/* Schermo Intero (Icon Only Button - Immagine 3) */}
             <button
               onClick={toggleFullscreen}
-              className={`flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs uppercase tracking-wider font-extrabold shadow-md transition-all border ${
+              className={`p-2 sm:p-2.5 rounded-xl shadow-md transition-all border cursor-pointer flex items-center justify-center ${
                 isFullscreen
                   ? 'bg-yellow-500 text-black border-yellow-300 shadow-[0_0_15px_rgba(212,175,55,0.5)]'
-                  : 'bg-slate-900/90 border-yellow-500/40 text-yellow-400 hover:bg-slate-800'
+                  : 'bg-slate-900/90 border-yellow-500/50 text-yellow-400 hover:bg-slate-800'
               }`}
               title="Schermo Intero Immersivo"
+              aria-label="Schermo Intero Immersivo"
             >
-              <Maximize2 className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="hidden xs:inline">Schermo Intero</span>
+              <Maximize2 className="w-5 h-5 text-yellow-400" />
             </button>
 
-            {/* Chiudi App / Torna al Cellulare Direct Button */}
-            <button
-              onClick={handleExitApp}
-              className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs uppercase tracking-wider font-extrabold bg-red-950/80 hover:bg-red-900/90 border border-red-500/60 text-red-300 transition-all shadow-md active:scale-95 cursor-pointer"
-              title="Chiudi l'app e torna al cellulare"
-            >
-              <LogOut className="w-3.5 h-3.5 text-red-400" />
-              <span className="hidden sm:inline">Chiudi App</span>
-              <span className="sm:hidden">Esci</span>
-            </button>
-
-            {/* Master Merged VIP & Tools Menu Dropdown */}
+            {/* Hamburger Menu Button (3 Parallel Lines Icon) */}
             <div className="relative">
               <button
                 onClick={() => setShowMainMenu(!showMainMenu)}
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-amber-950/90 via-zinc-900 to-black hover:from-amber-900 hover:to-zinc-800 text-amber-300 font-extrabold text-xs sm:text-sm rounded-xl border-2 border-yellow-500/70 shadow-[0_0_20px_rgba(255,215,0,0.3)] tracking-wider uppercase transition-all"
-                title="Apri Menu VIP, Strumenti e Navigazione 3D"
+                className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-amber-950/90 via-zinc-900 to-black hover:from-amber-900 hover:to-zinc-800 text-amber-300 font-extrabold text-xs sm:text-sm rounded-xl border-2 border-yellow-500/70 shadow-[0_0_20px_rgba(255,215,0,0.3)] tracking-wider uppercase transition-all cursor-pointer"
+                title="Apri Menu Navigazione e Strumenti"
               >
-                <Award className="w-4 h-4 text-yellow-400" />
-                <span>
-                  {currentUser?.isLoggedIn ? currentUser.username : 'Menu VIP'}
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-yellow-500 text-black text-[10px] sm:text-[11px] font-black shadow-md border border-amber-300">
-                  {userCoins} PTS
-                </span>
-                <ChevronDown className={`w-3.5 h-3.5 text-yellow-400 transition-transform duration-200 ${showMainMenu ? 'rotate-180' : ''}`} />
+                <Menu className="w-5 h-5 text-yellow-400" />
+                <span className="hidden sm:inline">Menu</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-yellow-400 transition-transform duration-200 hidden sm:inline ${showMainMenu ? 'rotate-180' : ''}`} />
               </button>
 
+              {/* Master Dropdown Menu */}
               {showMainMenu && (
                 <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 bg-slate-950/98 backdrop-blur-2xl border-2 border-yellow-500/70 rounded-2xl p-3 shadow-[0_0_50px_rgba(0,0,0,0.95)] z-[99999] flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 max-h-[85vh] overflow-y-auto">
                   
-                  {/* SECTION 1: PROFILO & AREA VIP */}
-                  <div className="px-3 py-1.5 bg-yellow-500/10 rounded-xl border border-yellow-500/30 flex items-center justify-between text-xs font-black uppercase tracking-wider text-yellow-300">
-                    <div className="flex items-center gap-1.5">
-                      <Award className="w-4 h-4 text-yellow-400" />
-                      <span>Area VIP Meta-TV</span>
-                    </div>
-                    <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full font-mono text-[11px]">
-                      {userCoins} PTS
-                    </span>
+                  {/* SEZIONE 1: MODALITÀ DI NAVIGAZIONE */}
+                  <div className="px-3 py-1.5 bg-yellow-500/10 rounded-xl border border-yellow-500/30 text-xs font-black uppercase tracking-wider text-yellow-300">
+                    📍 Modalità Navigazione
                   </div>
 
-                  {/* Area VIP / Saldo & Coupon */}
+                  <div className="grid grid-cols-1 gap-1">
+                    <button
+                      onClick={() => {
+                        onModeChange('corridor');
+                        setShowMainMenu(false);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                        currentMode === 'corridor' ? 'bg-yellow-500 text-black font-black' : 'bg-black/40 hover:bg-white/10 text-white'
+                      }`}
+                    >
+                      <span>📍 Corridoi 3D (Galleria)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onModeChange('globe');
+                        setShowMainMenu(false);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                        currentMode === 'globe' ? 'bg-yellow-500 text-black font-black' : 'bg-black/40 hover:bg-white/10 text-white'
+                      }`}
+                    >
+                      <span>🌍 Mappa Globale 3D</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onModeChange('panorama');
+                        setShowMainMenu(false);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                        currentMode === 'panorama' ? 'bg-yellow-500 text-black font-black' : 'bg-black/40 hover:bg-white/10 text-white'
+                      }`}
+                    >
+                      <span>🖼️ Demo Panorami 360° (Ambienti)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        onModeChange('live-events');
+                        setShowMainMenu(false);
+                      }}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                        currentMode === 'live-events' ? 'bg-yellow-500 text-black font-black' : 'bg-black/40 hover:bg-white/10 text-white'
+                      }`}
+                    >
+                      <span>📺 Eventi Live & TV</span>
+                    </button>
+                  </div>
+
+                  <div className="h-px bg-white/10 my-0.5" />
+
+                  {/* SEZIONE 2: PROFILO & AREA VIP */}
+                  <div className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-400/80">
+                    👑 Area VIP & Saldo
+                  </div>
+
                   <button
                     onClick={() => {
                       onOpenGamification();
@@ -436,10 +462,11 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                       <Award className="w-4 h-4 text-yellow-400" />
                       <span>👑 Saldo Punti & Riscatta Coupon</span>
                     </div>
-                    <span className="text-[10px] text-yellow-400 font-extrabold uppercase">APRI</span>
+                    <span className="bg-yellow-500 text-black px-2 py-0.5 rounded-full font-mono text-[10px] font-black">
+                      {userCoins} PTS
+                    </span>
                   </button>
 
-                  {/* Login / VIP Account */}
                   {onOpenAuth && (
                     <button
                       onClick={() => {
@@ -469,12 +496,32 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
 
                   <div className="h-px bg-white/10 my-0.5" />
 
-                  {/* SECTION 2: STRUMENTI & NAVIGAZIONE 3D */}
+                  {/* SEZIONE 3: CONTROLLI & VELOCITÀ 3D */}
                   <div className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-400/80">
-                    ⚡ Strumenti & Navigazione 3D
+                    ⚡ Controlli & Velocità 3D
                   </div>
 
-                  {/* Teletrasporto */}
+                  {/* Slider Velocità */}
+                  <div className="px-3 py-2 bg-black/50 rounded-xl border border-white/10 flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-xs text-amber-300 font-bold">
+                      <span className="flex items-center gap-1">
+                        <FastForward className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Velocità Camminata:</span>
+                      </span>
+                      <span className="font-mono text-amber-400 font-extrabold">{walkSpeed}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.5"
+                      step="0.25"
+                      value={walkSpeed}
+                      onChange={(e) => onChangeWalkSpeed(parseFloat(e.target.value))}
+                      className="w-full accent-yellow-400 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Teletrasporto Padiglioni */}
                   <button
                     onClick={() => {
                       setShowTeleportModal(true);
@@ -488,6 +535,39 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                     </div>
                     <span className="text-[10px] text-white/50">MAPPA</span>
                   </button>
+
+                  {/* Recentra Visuale */}
+                  <button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('recenter-visuale'));
+                      setShowMainMenu(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 bg-black/40 hover:bg-yellow-500/20 text-yellow-300 font-bold text-xs rounded-xl border border-white/10 hover:border-yellow-500/40 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🎯</span>
+                      <span>Recentra Visuale 3D</span>
+                    </div>
+                  </button>
+
+                  {/* Anteprima Smartphone Simulator */}
+                  {onToggleMobilePreview && (
+                    <button
+                      onClick={() => {
+                        onToggleMobilePreview();
+                        setShowMainMenu(false);
+                      }}
+                      className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-400/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/50 transition-all text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-amber-400" />
+                        <span>📱 Anteprima Smartphone</span>
+                      </div>
+                      <span className="text-[9px] bg-amber-400 text-black px-1.5 py-0.5 rounded font-black uppercase">
+                        {isMobilePreview ? 'ON' : 'TEST CELL'}
+                      </span>
+                    </button>
+                  )}
 
                   {/* VR Mode */}
                   <button
@@ -517,7 +597,7 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                         const pts = pointsRules?.listenMusicPoints || 40;
                         if (onEarnPoints) onEarnPoints(pts, 'Ascolto Musica / Radio Galleria 3D');
                         setClaimedMusicPoints(true);
-                        setMediaFeedback(`+${pts} PTS Musica Riscattai!`);
+                        setMediaFeedback(`+${pts} PTS Musica Riscattati!`);
                         setTimeout(() => setMediaFeedback(null), 3500);
                       }
                       setShowMainMenu(false);
@@ -528,37 +608,8 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                       {isPlayingMusic ? <Volume2 className="w-4 h-4 text-yellow-400 animate-pulse" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
                       <span>🎧 Radio Galleria 3D</span>
                     </div>
-                    {!claimedMusicPoints ? (
+                    {!claimedMusicPoints && (
                       <span className="text-[9px] bg-yellow-500 text-black px-1.5 py-0.5 rounded font-black">+{pointsRules?.listenMusicPoints || 40} PTS</span>
-                    ) : (
-                      <span className="text-[9px] text-green-400 font-mono">ON</span>
-                    )}
-                  </button>
-
-                  {/* Centro Galleria 3D */}
-                  <button
-                    onClick={() => {
-                      if (!claimedCenterPoints) {
-                        const pts = pointsRules?.centerCustomPoints || 80;
-                        const label = pointsRules?.centerCustomLabel || 'Interazione Centro Galleria 3D';
-                        if (onEarnPoints) onEarnPoints(pts, label);
-                        setClaimedCenterPoints(true);
-                        setMediaFeedback(`+${pts} PTS per ${label}!`);
-                        setTimeout(() => setMediaFeedback(null), 3500);
-                      } else {
-                        setMediaFeedback(`Punti Centro già riscattati!`);
-                        setTimeout(() => setMediaFeedback(null), 2500);
-                      }
-                      setShowMainMenu(false);
-                    }}
-                    className="flex items-center justify-between px-3 py-2 bg-black/40 hover:bg-amber-500/20 text-amber-300 font-bold text-xs rounded-xl border border-white/10 hover:border-amber-500/40 transition-all text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Radio className="w-4 h-4 text-amber-400" />
-                      <span>📻 Centro Galleria 3D</span>
-                    </div>
-                    {!claimedCenterPoints && (
-                      <span className="text-[9px] bg-amber-500 text-black px-1.5 py-0.5 rounded font-black">+{pointsRules?.centerCustomPoints || 80} PTS</span>
                     )}
                   </button>
 
@@ -580,19 +631,34 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
                     </div>
                   </button>
 
-                  {/* Chatbot Assistente AI */}
+                  <div className="h-px bg-white/10 my-0.5" />
+
+                  {/* SEZIONE 4: ASSISTENZA & ESCI */}
                   <button
                     onClick={() => {
                       onToggleChatbot();
                       setShowMainMenu(false);
                     }}
-                    className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-400 text-black font-extrabold text-xs rounded-xl hover:scale-102 transition-all text-left shadow-md mt-1"
+                    className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-yellow-500 to-amber-400 text-black font-extrabold text-xs rounded-xl hover:scale-102 transition-all text-left shadow-md"
                   >
                     <div className="flex items-center gap-2">
                       <Bot className="w-4 h-4 text-black" />
-                      <span>🤖 Chatbot Assistente Meta-TV</span>
+                      <span>🤖 Chatbot Assistente AI</span>
                     </div>
                     <span className="text-[10px] bg-black/80 text-yellow-300 px-1.5 py-0.5 rounded font-bold">AI</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      handleExitApp();
+                      setShowMainMenu(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 bg-red-950/80 hover:bg-red-900 text-red-300 font-bold text-xs rounded-xl border border-red-500/40 transition-all text-left mt-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <LogOut className="w-4 h-4 text-red-400" />
+                      <span>Chiudi App / Esci</span>
+                    </div>
                   </button>
 
                 </div>
@@ -642,64 +708,9 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
         </div>
       )}
 
-      {/* Corridor Floating Toolbar & Minimap (Only active in Corridor 3D view when not in fullscreen) */}
-      {!isFullscreen && currentMode === 'corridor' && (
-        <>
-          {/* Top Control Bar Below Header */}
-          <div className="absolute top-16 sm:top-20 left-2 sm:left-6 z-20 flex items-center gap-2 sm:gap-3 bg-black/85 backdrop-blur-md p-1.5 sm:p-2 rounded-xl border border-white/10 shadow-2xl max-w-[calc(100vw-1rem)] overflow-x-auto whitespace-nowrap">
-            {/* Walk Speed */}
-            <div className="flex items-center gap-1.5 px-1.5 text-xs text-yellow-400 font-medium shrink-0">
-              <FastForward className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="hidden sm:inline uppercase text-[10px] tracking-wider text-white/50">Velocità:</span>
-              <input
-                type="range"
-                min="0.5"
-                max="2.5"
-                step="0.25"
-                value={walkSpeed}
-                onChange={(e) => onChangeWalkSpeed(parseFloat(e.target.value))}
-                className="w-14 sm:w-20 accent-yellow-500 cursor-pointer"
-              />
-              <span className="font-mono text-yellow-400 font-bold text-[11px] sm:text-xs">{walkSpeed}x</span>
-            </div>
-
-            <div className="h-4 w-px bg-white/10 shrink-0" />
-
-            {/* VR Toggle */}
-            <button
-              onClick={onToggleVR}
-              className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold tracking-wider uppercase transition-all border shrink-0 ${
-                isVRMode
-                  ? 'bg-cyan-500 text-black border-cyan-300 font-bold shadow-[0_0_12px_rgba(6,182,212,0.5)]'
-                  : 'bg-black/40 text-white/70 border-white/10 hover:border-cyan-500/50 hover:text-white'
-              }`}
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>VR</span>
-            </button>
-
-            {/* Auto-Tour Guide Toggle */}
-            <button
-              onClick={onToggleAutoTour}
-              className={`flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold tracking-wider uppercase transition-all border shrink-0 ${
-                isAutoTour
-                  ? 'bg-yellow-500 text-black border-yellow-300 font-bold animate-pulse shadow-[0_0_12px_rgba(212,175,55,0.5)]'
-                  : 'bg-black/40 text-white/70 border-white/10 hover:border-yellow-500/50 hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Tour Automatico</span>
-              <span className="xs:hidden">Tour</span>
-            </button>
-          </div>
-
-          {/* Note: Full interactive 2D Mini-Map with rooms, corridors, and vision cone is rendered by MallCanvas3D */}
-        </>
-      )}
-
       {/* Teleport Modal */}
       {showTeleportModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100000] bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
           <div className="bg-[#080808] border border-yellow-500/30 p-6 rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.8)] animate-in zoom-in-95">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
               <div className="flex items-center gap-3">
@@ -719,35 +730,85 @@ export const NavigationOverlay: React.FC<NavigationOverlayProps> = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {pavilions.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    onSelectPavilion(p);
-                    onModeChange('corridor');
-                    setShowTeleportModal(false);
-                  }}
-                  className="p-3.5 bg-black/60 hover:bg-yellow-500/10 border border-white/10 hover:border-yellow-500/50 rounded-2xl flex items-center gap-3 text-left transition-all group"
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-black text-xs shadow-md"
-                    style={{ backgroundColor: p.color }}
-                  >
-                    {p.name.substring(0, 2)}
+            {/* Pulsante rapido per Corridoio Generale / Atrio Principale */}
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  onSelectPavilion(null);
+                  setShowTeleportModal(false);
+                }}
+                className={`w-full p-3.5 rounded-2xl flex items-center justify-between transition-all border ${
+                  !selectedPavilion
+                    ? 'bg-yellow-500/20 border-yellow-400 text-yellow-300 shadow-[0_0_20px_rgba(250,204,21,0.2)]'
+                    : 'bg-black/80 hover:bg-yellow-500/10 border-white/15 text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 text-black flex items-center justify-center font-black text-sm shadow-md">
+                    🏛️
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-white group-hover:text-yellow-400 font-bold text-xs uppercase tracking-wider truncate">
-                      {p.name}
+                  <div className="text-left">
+                    <h4 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
+                      <span>Atrio Principale (Tutte le 20 Categorie)</span>
+                      {!selectedPavilion && (
+                        <span className="bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full">
+                          ATTUALE
+                        </span>
+                      )}
                     </h4>
-                    <p className="text-[11px] text-white/50 truncate">{p.tagline}</p>
+                    <p className="text-xs text-white/50">Visualizza tutte le 20 porte delle categorie del centro</p>
                   </div>
-                </button>
-              ))}
+                </div>
+                <ArrowRight className="w-5 h-5 text-yellow-400 shrink-0" />
+              </button>
+            </div>
+
+            <div className="text-[11px] font-bold text-white/40 uppercase tracking-wider mb-2">
+              Oppure entra direttamente in un Padiglione specifico:
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {pavilions.map((p) => {
+                const isCurrent = selectedPavilion?.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      onSelectPavilion(p);
+                      setShowTeleportModal(false);
+                    }}
+                    className={`p-3.5 border rounded-2xl flex items-center gap-3 text-left transition-all group ${
+                      isCurrent
+                        ? 'bg-yellow-500/20 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.3)]'
+                        : 'bg-black/60 hover:bg-yellow-500/10 border-white/10 hover:border-yellow-500/50'
+                    }`}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-black text-xs shadow-md shrink-0"
+                      style={{ backgroundColor: p.color }}
+                    >
+                      {p.name.substring(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <h4 className={`font-bold text-xs uppercase tracking-wider truncate ${isCurrent ? 'text-yellow-300 font-black' : 'text-white group-hover:text-yellow-400'}`}>
+                          {p.name}
+                        </h4>
+                        {isCurrent && (
+                          <span className="bg-yellow-400 text-black text-[8px] font-black px-1.5 py-0.5 rounded shrink-0">
+                            QUI
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-white/50 truncate">{p.tagline}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
     </>
   );
-};
+});

@@ -11,6 +11,23 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      target: 'esnext',
+      cssCodeSplit: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('three')) return 'vendor-three';
+              if (id.includes('leaflet')) return 'vendor-leaflet';
+              if (id.includes('lucide-react')) return 'vendor-icons';
+              if (id.includes('@google/genai')) return 'vendor-ai';
+              return 'vendor';
+            }
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
