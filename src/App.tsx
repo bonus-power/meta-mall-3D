@@ -117,7 +117,30 @@ export default function App() {
     return INITIAL_COMPANIES;
   });
   const [panoramas, setPanoramas] = useState<Panorama360[]>(INITIAL_PANORAMAS);
-  const [events] = useState<LiveEvent[]>(INITIAL_LIVE_EVENTS);
+  const [events, setEvents] = useState<LiveEvent[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('meta_tv_live_events');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Error loading live events from localStorage', e);
+        }
+      }
+    }
+    return INITIAL_LIVE_EVENTS;
+  });
+
+  const handleUpdateEvents = (newEvents: LiveEvent[]) => {
+    setEvents(newEvents);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('meta_tv_live_events', JSON.stringify(newEvents));
+      } catch (e) {
+        console.error('Error saving live events to localStorage', e);
+      }
+    }
+  };
   const [badges, setBadges] = useState<Badge[]>(INITIAL_BADGES);
   const [sponsorPanels, setSponsorPanels] = useState<SponsorPanel[]>(() => {
     if (typeof window !== 'undefined') {
@@ -551,12 +574,14 @@ export default function App() {
                 companies={companies}
                 pavilions={pavilions}
                 panoramas={panoramas}
+                events={events}
                 sponsorPanels={sponsorPanels}
                 collaborators={collaborators}
                 pointsRules={pointsRules}
                 subcategoriesMap={subcategoriesMap}
                 onUpdateCompanies={setCompanies}
                 onUpdatePanoramas={setPanoramas}
+                onUpdateEvents={handleUpdateEvents}
                 onUpdateSponsorPanels={setSponsorPanels}
                 onUpdateCollaborators={setCollaborators}
                 onUpdatePointsRules={setPointsRules}

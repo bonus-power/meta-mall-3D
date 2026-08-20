@@ -255,7 +255,11 @@ export interface LiveEvent {
   performer: string;
   time: string;
   category: string;
-  youtubeId: string;
+  youtubeId?: string;
+  playerUrl?: string;
+  thumbnailUrl?: string;
   description: string;
   isLive: boolean;
+  status?: 'active' | 'suspended';
+  isPlayerVisible?: boolean;
 }

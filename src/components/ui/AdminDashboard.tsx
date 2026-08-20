@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Company, Pavilion, Panorama360, SponsorPanel, AdminCollaborator, SubCategory, PointsRuleConfig } from '../../types';
+import { Company, Pavilion, Panorama360, LiveEvent, SponsorPanel, AdminCollaborator, SubCategory, PointsRuleConfig } from '../../types';
 import { SUBCATEGORIES_BY_PAVILION } from '../../data/subcategoriesData';
 import {
   Shield,
@@ -28,18 +28,26 @@ import {
   Tag,
   FolderPlus,
   Upload,
+  Tv,
+  Radio,
+  Calendar,
+  Play,
+  Clock,
+  Video,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
   companies: Company[];
   pavilions: Pavilion[];
   panoramas: Panorama360[];
+  events?: LiveEvent[];
   sponsorPanels?: SponsorPanel[];
   collaborators?: AdminCollaborator[];
   pointsRules?: PointsRuleConfig;
   subcategoriesMap?: Record<string, SubCategory[]>;
   onUpdateCompanies: (companies: Company[]) => void;
   onUpdatePanoramas: (panoramas: Panorama360[]) => void;
+  onUpdateEvents?: (events: LiveEvent[]) => void;
   onUpdateSponsorPanels?: (panels: SponsorPanel[]) => void;
   onUpdateCollaborators?: (collaborators: AdminCollaborator[]) => void;
   onUpdatePointsRules?: (rules: PointsRuleConfig) => void;
@@ -51,6 +59,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   companies,
   pavilions,
   panoramas,
+  events = [],
   sponsorPanels = [],
   collaborators = [],
   pointsRules = {
@@ -67,13 +76,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   subcategoriesMap = SUBCATEGORIES_BY_PAVILION,
   onUpdateCompanies,
   onUpdatePanoramas,
+  onUpdateEvents,
   onUpdateSponsorPanels,
   onUpdateCollaborators,
   onUpdatePointsRules,
   onUpdateSubcategoriesMap,
   onCreditUserPoints,
 }) => {
-  const [activeTab, setActiveTab] = useState<'companies' | 'subcategories' | 'pavilions' | 'panoramas' | 'sponsors' | 'gamification' | 'embed'>('companies');
+  const [activeTab, setActiveTab] = useState<'companies' | 'subcategories' | 'pavilions' | 'panoramas' | 'sponsors' | 'events' | 'gamification' | 'embed'>('companies');
   const [localRules, setLocalRules] = useState<PointsRuleConfig>(pointsRules);
   const [creditEmail, setCreditEmail] = useState('');
   const [creditAmount, setCreditAmount] = useState(100);
@@ -81,6 +91,120 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+
+  // Live Events state
+  const [editingEvent, setEditingEvent] = useState<LiveEvent | null>(null);
+  const [showAddEventModal, setShowAddEventModal] = useState<boolean>(false);
+  const [newEvent, setNewEvent] = useState<Partial<LiveEvent>>({
+    title: '',
+    performer: '',
+    time: 'Oggi alle 21:00',
+    category: 'Musica & Spettacolo',
+    youtubeId: '',
+    playerUrl: '',
+    thumbnailUrl: '',
+    description: '',
+    isLive: false,
+    status: 'active',
+  });
+
+  const sanitizePlayerUrl = (raw?: string): string | undefined => {
+    if (!raw) return undefined;
+    let url = raw.trim();
+    if (url.startsWith('<iframe') || url.includes('src=')) {
+      const match = url.match(/src=["']([^"']+)["']/);
+      if (match && match[1]) url = match[1];
+    }
+    if (url.includes('/gestione/player')) {
+      url = url.replace('/gestione/player', '/jwplayer.php');
+    }
+    return url || undefined;
+  };
+
+  const handleCreateEvent = () => {
+    if (!newEvent.title) return;
+    const cleanYt = (newEvent.youtubeId || '').replace(/.*(?:v=|\/)([\w-]{11}).*/, '$1').trim();
+    const cleanPlayer = sanitizePlayerUrl(newEvent.playerUrl);
+    const eventToAdd: LiveEvent = {
+      id: `ev-${Date.now()}`,
+      title: newEvent.title || 'Nuovo Canale Meta-TV',
+      performer: newEvent.performer || 'Meta-TV Live',
+      time: newEvent.time || 'In Onda 24/7',
+      category: newEvent.category || 'Spettacolo & Varietà',
+      youtubeId: cleanYt || undefined,
+      playerUrl: cleanPlayer,
+      thumbnailUrl: newEvent.thumbnailUrl || undefined,
+      description: newEvent.description || '',
+      isLive: !!newEvent.isLive,
+      status: newEvent.status || 'active',
+    };
+
+    if (onUpdateEvents) {
+      if (newEvent.isLive) {
+        const updated = events.map((e) => ({ ...e, isLive: false }));
+        onUpdateEvents([...updated, eventToAdd]);
+      } else {
+        onUpdateEvents([...events, eventToAdd]);
+      }
+    }
+
+    setShowAddEventModal(false);
+    setNewEvent({
+      title: '',
+      performer: '',
+      time: 'In Onda 24/7',
+      category: 'Spettacolo & Varietà',
+      youtubeId: '',
+      playerUrl: '',
+      thumbnailUrl: '',
+      description: '',
+      isLive: false,
+      status: 'active',
+    });
+  };
+
+  const handleSaveEvent = () => {
+    if (!editingEvent) return;
+    const cleanYt = editingEvent.youtubeId ? editingEvent.youtubeId.replace(/.*(?:v=|\/)([\w-]{11}).*/, '$1').trim() : undefined;
+    const cleanPlayer = sanitizePlayerUrl(editingEvent.playerUrl);
+    const sanitizedEvent = { ...editingEvent, youtubeId: cleanYt, playerUrl: cleanPlayer };
+
+    if (onUpdateEvents) {
+      const updated = events.map((e) => {
+        if (e.id === sanitizedEvent.id) {
+          return sanitizedEvent;
+        }
+        if (sanitizedEvent.isLive) {
+          return { ...e, isLive: false };
+        }
+        return e;
+      });
+      onUpdateEvents(updated);
+    }
+    setEditingEvent(null);
+  };
+
+  const handleDeleteEvent = (id: string) => {
+    if (onUpdateEvents) {
+      onUpdateEvents(events.filter((e) => e.id !== id));
+    }
+  };
+
+  const handleToggleLiveEvent = (id: string) => {
+    if (!onUpdateEvents) return;
+    const target = events.find((e) => e.id === id);
+    const isCurrentlyLive = target?.isLive;
+    const updated = events.map((e) => {
+      if (e.id === id) {
+        return { ...e, isLive: !isCurrentlyLive };
+      }
+      if (!isCurrentlyLive) {
+        return { ...e, isLive: false };
+      }
+      return e;
+    });
+    onUpdateEvents(updated);
+  };
 
   // Subcategory management state
   const [selectedSubcatPavilionId, setSelectedSubcatPavilionId] = useState<string>('shopping');
@@ -367,6 +491,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Megaphone className="w-4 h-4 text-cyan-400" />
             <span>Sponsor & Pareti 3D ({sponsorPanels.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('events')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+              activeTab === 'events'
+                ? 'bg-yellow-500 text-black shadow-[0_0_12px_rgba(212,175,55,0.35)]'
+                : 'text-white/60 hover:text-white'
+            }`}
+          >
+            <Tv className="w-4 h-4 text-red-500" />
+            <span>Eventi Live & TV ({events.length})</span>
           </button>
 
           <button
@@ -1935,6 +2071,151 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
+      {/* Tab: Live Events & Streaming Schedule Management */}
+      {activeTab === 'events' && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h3 className="text-yellow-500 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                <Tv className="w-4 h-4 text-red-500" />
+                <span>Palinsesto Eventi & Dirette Streaming Meta-TV</span>
+              </h3>
+              <p className="text-[11px] text-white/50 mt-0.5">
+                Gestisci trasmissioni in diretta, webinar, sfilate di moda e lanci di prodotto proiettati nel Palco Live e nei maxischermi 3D.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddEventModal(true)}
+              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.3)] flex items-center gap-2 cursor-pointer transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Aggiungi Nuovo Evento Live</span>
+            </button>
+          </div>
+
+          {/* Info Notice Banner */}
+          <div className="p-4 bg-gradient-to-r from-red-950/40 via-amber-950/20 to-black border border-red-500/30 rounded-2xl flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center shrink-0">
+              <Radio className="w-5 h-5 text-red-400 animate-pulse" />
+            </div>
+            <div className="text-xs space-y-0.5">
+              <p className="text-white font-bold">
+                Regola di Trasmissione: L'evento contrassegnato con <span className="text-red-400 font-black uppercase">"IN ONDA"</span> è visibile immediatamente in streaming principale sul Palco Eventi e sui monitor interattivi 3D.
+              </p>
+              <p className="text-white/50 text-[11px]">
+                Supporta ID YouTube diretti (es. <code>5qap5aO4i9A</code>) o URL completi YouTube Live.
+              </p>
+            </div>
+          </div>
+
+          {/* Events Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {events.map((ev) => (
+              <div
+                key={ev.id}
+                className={`bg-[#080808] border rounded-3xl p-5 flex flex-col justify-between space-y-4 transition-all hover:border-yellow-500/40 shadow-lg ${
+                  ev.isLive
+                    ? 'border-red-500/60 shadow-[0_0_25px_rgba(239,68,68,0.2)] bg-gradient-to-b from-red-950/20 to-[#080808]'
+                    : 'border-white/10'
+                }`}
+              >
+                <div className="space-y-3">
+                  {/* Top Badges & Live Status */}
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
+                      {ev.category}
+                    </span>
+                    {ev.isLive ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-600 text-white animate-pulse flex items-center gap-1">
+                        <Radio className="w-3 h-3" /> IN ONDA
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-medium uppercase tracking-wider bg-white/10 text-white/60 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Programma
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Thumbnail / Embed Mini Frame */}
+                  <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-white/10 relative group">
+                    <img
+                      src={
+                        ev.thumbnailUrl ||
+                        (ev.youtubeId
+                          ? `https://img.youtube.com/vi/${ev.youtubeId}/hqdefault.jpg`
+                          : 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80')
+                      }
+                      alt={ev.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=600&q=80';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                      <div className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg">
+                        <Play className="w-5 h-5 fill-white ml-0.5" />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/80 backdrop-blur rounded text-[9px] font-mono text-yellow-300">
+                      {ev.playerUrl ? 'Player Meta-TV' : `YT: ${ev.youtubeId || 'N/D'}`}
+                    </div>
+                  </div>
+
+                  {/* Event Details */}
+                  <div>
+                    <h4 className="text-white font-bold text-sm leading-snug line-clamp-1">{ev.title}</h4>
+                    <p className="text-yellow-400 text-xs font-semibold mt-0.5 flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5" /> {ev.performer}
+                    </p>
+                    <p className="text-white/50 text-[11px] mt-1 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-white/40" /> {ev.time}
+                    </p>
+                    {ev.description && (
+                      <p className="text-white/60 text-xs mt-2 line-clamp-2 leading-relaxed bg-black/40 p-2.5 rounded-xl border border-white/5">
+                        {ev.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Event Actions */}
+                <div className="pt-3 border-t border-white/10 space-y-2">
+                  <button
+                    onClick={() => handleToggleLiveEvent(ev.id)}
+                    className={`w-full py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      ev.isLive
+                        ? 'bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/40'
+                        : 'bg-yellow-500 hover:bg-yellow-400 text-black shadow-md'
+                    }`}
+                  >
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>{ev.isLive ? 'Disattiva Live' : 'Metti IN ONDA Subito'}</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingEvent(ev)}
+                      className="flex-1 py-1.5 bg-white/5 hover:bg-white/15 border border-white/10 rounded-xl text-white/80 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-yellow-400" />
+                      <span>Modifica</span>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(ev.id)}
+                      className="px-3 py-1.5 bg-red-950/30 hover:bg-red-900/60 border border-red-500/30 rounded-xl text-red-400 hover:text-red-300 text-xs font-bold transition-all cursor-pointer"
+                      title="Elimina Evento"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Tab: Embed Code */}
       {activeTab === 'embed' && (
         <div className="bg-[#080808] border border-yellow-500/30 p-6 rounded-3xl space-y-4 max-w-3xl">
@@ -2345,6 +2626,305 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <button
                 onClick={handleSaveSubCategory}
                 className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md"
+              >
+                <Save className="w-4 h-4" /> Salva Modifiche
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add New Live Event */}
+      {showAddEventModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#080808] border border-yellow-500/40 p-6 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(245,158,11,0.2)] space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-white font-light text-lg tracking-wide uppercase flex items-center gap-2">
+                <Tv className="w-5 h-5 text-red-500" />
+                Aggiungi <span className="font-bold text-yellow-500">Nuovo Evento Live / TV</span>
+              </h3>
+              <button onClick={() => setShowAddEventModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  Titolo Evento / Spettacolo *
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.title || ''}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  placeholder="Es. Grand Gala Moda Primavera 2026"
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                    Artista / Presentatore / Brand *
+                  </label>
+                  <input
+                    type="text"
+                    value={newEvent.performer || ''}
+                    onChange={(e) => setNewEvent({ ...newEvent, performer: e.target.value })}
+                    placeholder="Es. Atelier Milano & DJ Cyber"
+                    className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                    Categoria Evento *
+                  </label>
+                  <input
+                    type="text"
+                    value={newEvent.category || ''}
+                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                    placeholder="Es. Musica, Moda, Tech, Food"
+                    className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  Data e Orario / Indicazione Temporale *
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.time || ''}
+                  onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                  placeholder="Es. Oggi alle 21:00 oppure Sabato 15 Ottobre ore 18:30"
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-yellow-400 block mb-1 uppercase tracking-wider text-[10px] font-bold flex items-center gap-1">
+                  <Tv className="w-3.5 h-3.5" /> URL Player Streaming Ufficiale (Meta-TV / ItaliaOnline / Web Player)
+                </label>
+                <input
+                  type="url"
+                  value={newEvent.playerUrl || ''}
+                  onChange={(e) => setNewEvent({ ...newEvent, playerUrl: e.target.value })}
+                  placeholder="Es. https://www.italiaonline.tv/gestione/player?idRubrica=1264..."
+                  className="w-full bg-zinc-950 border border-yellow-500/40 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  URL Thumbnail / Copertina Canale (Opzionale)
+                </label>
+                <input
+                  type="url"
+                  value={newEvent.thumbnailUrl || ''}
+                  onChange={(e) => setNewEvent({ ...newEvent, thumbnailUrl: e.target.value })}
+                  placeholder="https://www.italiaonline.tv/upload/..."
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-red-400 block mb-1 uppercase tracking-wider text-[10px] font-bold flex items-center gap-1">
+                  <Youtube className="w-3.5 h-3.5" /> ID Video YouTube Alternativo (Opzionale)
+                </label>
+                <input
+                  type="text"
+                  value={newEvent.youtubeId || ''}
+                  onChange={(e) => setNewEvent({ ...newEvent, youtubeId: e.target.value })}
+                  placeholder="Es. 5qap5aO4i9A oppure https://youtube.com/watch?v=5qap5aO4i9A"
+                  className="w-full bg-zinc-950 border border-red-500/40 p-2.5 rounded-xl text-yellow-200 focus:border-red-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  Descrizione dell'Evento
+                </label>
+                <textarea
+                  value={newEvent.description || ''}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  placeholder="Descrivi il programma dell'evento, gli ospiti speciali e le offerte dedicate..."
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 h-20 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-2xl flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isLiveCheckboxNew"
+                  checked={!!newEvent.isLive}
+                  onChange={(e) => setNewEvent({ ...newEvent, isLive: e.target.checked })}
+                  className="w-4 h-4 rounded text-red-600 focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="isLiveCheckboxNew" className="text-xs text-white font-bold cursor-pointer select-none">
+                  🔴 Metti questo evento subito <span className="text-red-400 uppercase font-black">IN ONDA</span> sul Palco Live
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setShowAddEventModal(false)}
+                className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleCreateEvent}
+                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <CheckCircle className="w-4 h-4" /> Crea Evento Live
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Live Event */}
+      {editingEvent && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4">
+          <div className="bg-[#080808] border border-yellow-500/40 p-6 rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-[0_0_50px_rgba(245,158,11,0.2)] space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-white font-light text-lg tracking-wide uppercase flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-yellow-400" />
+                Modifica <span className="font-bold text-yellow-500">Evento Live</span>
+              </h3>
+              <button onClick={() => setEditingEvent(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  Titolo Evento
+                </label>
+                <input
+                  type="text"
+                  value={editingEvent.title}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                    Artista / Presentatore
+                  </label>
+                  <input
+                    type="text"
+                    value={editingEvent.performer}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, performer: e.target.value })}
+                    className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                    Categoria
+                  </label>
+                  <input
+                    type="text"
+                    value={editingEvent.category}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, category: e.target.value })}
+                    className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  Orario / Data
+                </label>
+                <input
+                  type="text"
+                  value={editingEvent.time}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, time: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-yellow-400 block mb-1 uppercase tracking-wider text-[10px] font-bold flex items-center gap-1">
+                  <Tv className="w-3.5 h-3.5" /> URL Player Streaming Ufficiale (Meta-TV / ItaliaOnline / Web Player)
+                </label>
+                <input
+                  type="url"
+                  value={editingEvent.playerUrl || ''}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, playerUrl: e.target.value })}
+                  placeholder="Es. https://www.italiaonline.tv/gestione/player?idRubrica=1264..."
+                  className="w-full bg-zinc-950 border border-yellow-500/40 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  URL Thumbnail / Copertina Canale (Opzionale)
+                </label>
+                <input
+                  type="url"
+                  value={editingEvent.thumbnailUrl || ''}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, thumbnailUrl: e.target.value })}
+                  placeholder="https://www.italiaonline.tv/upload/..."
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-red-400 block mb-1 uppercase tracking-wider text-[10px] font-bold flex items-center gap-1">
+                  <Youtube className="w-3.5 h-3.5" /> ID Video YouTube Alternativo (Opzionale)
+                </label>
+                <input
+                  type="text"
+                  value={editingEvent.youtubeId || ''}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, youtubeId: e.target.value })}
+                  placeholder="Es. 5qap5aO4i9A oppure https://youtube.com/watch?v=5qap5aO4i9A"
+                  className="w-full bg-zinc-950 border border-red-500/40 p-2.5 rounded-xl text-yellow-200 focus:border-red-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-white/60 block mb-1 uppercase tracking-wider text-[10px] font-bold">
+                  Descrizione
+                </label>
+                <textarea
+                  value={editingEvent.description}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                  className="w-full bg-zinc-950 border border-white/15 p-2.5 rounded-xl text-yellow-200 h-20 focus:border-yellow-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="p-3 bg-red-950/20 border border-red-500/30 rounded-2xl flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isLiveCheckboxEdit"
+                  checked={editingEvent.isLive}
+                  onChange={(e) => setEditingEvent({ ...editingEvent, isLive: e.target.checked })}
+                  className="w-4 h-4 rounded text-red-600 focus:ring-0 cursor-pointer"
+                />
+                <label htmlFor="isLiveCheckboxEdit" className="text-xs text-white font-bold cursor-pointer select-none">
+                  🔴 Imposta questo evento <span className="text-red-400 uppercase font-black">IN ONDA</span> (Live Principale)
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                onClick={() => setEditingEvent(null)}
+                className="px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-xs uppercase tracking-wider font-bold"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleSaveEvent}
+                className="px-5 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded-xl text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 shadow-md cursor-pointer"
               >
                 <Save className="w-4 h-4" /> Salva Modifiche
               </button>
